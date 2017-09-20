@@ -1,0 +1,571 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package edu.hope.superresolution.views;
+
+import edu.hope.superresolution.models.MicroscopeModel;
+import edu.hope.superresolution.models.ModelUpdateDispatcher;
+import edu.hope.superresolution.models.ModelUpdateListener;
+import edu.valelab.gaussianfit.utils.NumberUtils;
+import edu.valelab.gaussianfit.utils.ReportingUtils;
+import java.text.ParseException;
+import java.util.prefs.Preferences;
+
+/**
+ *
+ * @author Desig
+ */
+public class MicroscopeModelForm extends javax.swing.JFrame implements ModelUpdateListener {
+
+    //static preferences object for saving last closed instance and loading values on opening
+    private final Preferences prefs_;
+    private final static String NUM_APERTURE_KEY = "NumericalAperture";
+    private final static String REFRACTIVE_IDX_KEY = "RefractiveIndex";
+    private final static String INFINITY_CORRECTION_KEY = "InfinityCorrected";
+    private final static String MANUFACTURER_MAGNIFICATION_KEY = "ManufacturerMagnification";
+    private final static String EYEPIECE_MAGNIFICATION_KEY = "EyePieceMagnification";
+    private final static String REFERENCE_TUBE_LENGTH_KEY = "ReferenceTubeLength";
+    private final static String ACTUAL_TUBE_LENGTH_KEY = "ActualTubeLength";
+    
+    //Array for Consolidating Combo Box Options
+    private final static String[] isInfCorrectedOptions_ = new String[] { "yes", "no" };
+    //Warning for Mismatched Tube Lengths in non-infinity corrected Systems
+    private final static String MISMATCHED_TUBE_LENGTH_WARNING = "Warning: A Non-Infinity Corrected"
+            + " System Generally Should have the same Optical Tube Length as the reference to avoid"
+            + " blurring or diminishing of the image.";
+            
+    
+    //members used for validation
+    private double curNumAperture_;
+    private double curIndexRefraction_;
+    private boolean isInfinityCorrected_;
+    private double manufacturerMagnification_;
+    private double referenceTubeLength_;  //in mm
+    private double actualTubeLength_;     //in mm
+    private double eyePieceMagnification_;
+    
+    //model
+    private MicroscopeModel model_ = null;
+    
+    /**
+     * Creates new form MicroscopeModelForm
+     */
+    public MicroscopeModelForm( ) {
+        initComponents();      
+        
+        prefs_ = Preferences.userNodeForPackage(this.getClass());
+
+        curNumAperture_ = prefs_.getDouble( NUM_APERTURE_KEY, 1 );
+        curIndexRefraction_ = prefs_.getDouble( REFRACTIVE_IDX_KEY, 1 );
+        isInfinityCorrected_ = prefs_.getBoolean( INFINITY_CORRECTION_KEY, true);
+        manufacturerMagnification_ = prefs_.getDouble( MANUFACTURER_MAGNIFICATION_KEY, 100 );
+        referenceTubeLength_ = prefs_.getDouble( REFERENCE_TUBE_LENGTH_KEY, 180 );
+        actualTubeLength_ = prefs_.getDouble( ACTUAL_TUBE_LENGTH_KEY, 180 );
+        eyePieceMagnification_ = prefs_.getDouble( EYEPIECE_MAGNIFICATION_KEY, 1 );
+        
+        numericalApertureTextField_.setText( Double.toString( curNumAperture_ ));
+        opticalTubeLengthTextField_.setText( Double.toString( referenceTubeLength_ ));
+        refMagnificationTextField_.setText( Double.toString( manufacturerMagnification_ ));
+        refTubeLengthTextField_.setText( Double.toString( actualTubeLength_ ));
+        refractiveIdxTextField_.setText( Double.toString( curIndexRefraction_ ));
+        eyePieceMagnificationTextField_.setText( Double.toString( eyePieceMagnification_ ));
+        //isInfCorrectedComboBox_.setSelectedItem( ( isInfinityCorrected_ ? isInfCorrectedOptions_[0] : isInfCorrectedOptions_[1] ));
+        setCurrentInfinityCorrectedComboBox();
+        
+        //See if the settings are at all unexpected and warn the user
+        tubeLengthValidatePrompt();
+        
+        /*//Update the MicroscopeModel
+        model_ = new MicroscopeModel(curNumAperture_, curIndexRefraction_, 
+                            manufacturerMagnification_, referenceTubeLength_, isInfinityCorrected_,
+                            actualTubeLength_, eyePieceMagnification_);
+        
+        //This must be at the end of the constructor to avoid poor initialization
+        model_.registerModelListener( this );
+        */
+    }
+
+    /**
+     * Returns the MicroscopeModel Associated with the MicroscopeModelForm Instance.
+     * If not visually toggled and saved, this defaults to the last instance saved.
+     * 
+     * @return MicroscopeModel, only ever null it has been unregistered to the model.
+     */
+    public MicroscopeModel getMicroscopeModel() {
+        return model_;
+    }
+    
+    /**
+     * This method is called from within the constructor to initialize the form.
+     * WARNING: Do NOT modify this code. The content of this method is always
+     * regenerated by the Form Editor.
+     */
+    @SuppressWarnings("unchecked")
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    private void initComponents() {
+
+        jLabel1 = new javax.swing.JLabel();
+        jPanel1 = new javax.swing.JPanel();
+        jPanel2 = new javax.swing.JPanel();
+        jLabel2 = new javax.swing.JLabel();
+        jLabel3 = new javax.swing.JLabel();
+        numericalApertureTextField_ = new javax.swing.JTextField();
+        refractiveIdxTextField_ = new javax.swing.JTextField();
+        jLabel4 = new javax.swing.JLabel();
+        refMagnificationTextField_ = new javax.swing.JTextField();
+        jLabel5 = new javax.swing.JLabel();
+        jLabel6 = new javax.swing.JLabel();
+        isInfCorrectedComboBox_ = new javax.swing.JComboBox();
+        jLabel7 = new javax.swing.JLabel();
+        opticalTubeLengthTextField_ = new javax.swing.JTextField();
+        jLabel8 = new javax.swing.JLabel();
+        refTubeLengthTextField_ = new javax.swing.JTextField();
+        TubeLengthWarningLabel_ = new javax.swing.JLabel();
+        jLabel9 = new javax.swing.JLabel();
+        eyePieceMagnificationTextField_ = new javax.swing.JTextField();
+        jLabel10 = new javax.swing.JLabel();
+        SaveChanges = new javax.swing.JButton();
+
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            public void windowClosing(java.awt.event.WindowEvent evt) {
+                formWindowClosing(evt);
+            }
+        });
+
+        jLabel1.setText("Microscope Features");
+
+        jLabel2.setText("Objective");
+
+        jLabel3.setText("Numerical Aperture");
+
+        numericalApertureTextField_.setHorizontalAlignment(javax.swing.JTextField.TRAILING);
+        numericalApertureTextField_.setText("1");
+        numericalApertureTextField_.setToolTipText("The Numerical Aperture value of the Objective");
+        numericalApertureTextField_.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                numericalApertureTextField_ActionPerformed(evt);
+            }
+        });
+
+        refractiveIdxTextField_.setHorizontalAlignment(javax.swing.JTextField.TRAILING);
+        refractiveIdxTextField_.setText("1");
+        refractiveIdxTextField_.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                refractiveIdxTextField_ActionPerformed(evt);
+            }
+        });
+
+        jLabel4.setText("Index of Refraction");
+
+        refMagnificationTextField_.setHorizontalAlignment(javax.swing.JTextField.TRAILING);
+        refMagnificationTextField_.setText("100");
+        refMagnificationTextField_.setToolTipText("This is the Magnification at which the objective was rated by the manufacturer.  Typically this is printed on the side of the Objective and is subject to change if the tube lens is different than the one used for determining this value.  The other fields will account for this deviation.");
+        refMagnificationTextField_.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                refMagnificationTextField_ActionPerformed(evt);
+            }
+        });
+
+        jLabel5.setText("Reference Magnification");
+
+        jLabel6.setText("Is Infinity Corrected?");
+
+        isInfCorrectedComboBox_.setModel(new javax.swing.DefaultComboBoxModel(isInfCorrectedOptions_));
+        isInfCorrectedComboBox_.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                isInfCorrectedComboBox_ActionPerformed(evt);
+            }
+        });
+
+        jLabel7.setText("Optical Tube Focal Length (mm)");
+
+        opticalTubeLengthTextField_.setHorizontalAlignment(javax.swing.JTextField.TRAILING);
+        opticalTubeLengthTextField_.setText("180");
+        opticalTubeLengthTextField_.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                opticalTubeLengthTextField_ActionPerformed(evt);
+            }
+        });
+
+        jLabel8.setText("Reference Tube Focal Length (mm)");
+
+        refTubeLengthTextField_.setHorizontalAlignment(javax.swing.JTextField.TRAILING);
+        refTubeLengthTextField_.setText("180");
+        refTubeLengthTextField_.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                refTubeLengthTextField_ActionPerformed(evt);
+            }
+        });
+
+        TubeLengthWarningLabel_.setForeground(new java.awt.Color(255, 0, 0));
+
+        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
+        jPanel2.setLayout(jPanel2Layout);
+        jPanel2Layout.setHorizontalGroup(
+            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel2Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addComponent(jLabel2)
+                        .addGap(0, 0, Short.MAX_VALUE))
+                    .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addGap(10, 10, 10)
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(jLabel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(jLabel3)
+                                    .addComponent(jLabel6)
+                                    .addComponent(jLabel8)
+                                    .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                                        .addComponent(TubeLengthWarningLabel_, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                        .addComponent(jLabel7, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                                .addGap(0, 8, Short.MAX_VALUE)))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(refMagnificationTextField_)
+                            .addComponent(refractiveIdxTextField_)
+                            .addComponent(numericalApertureTextField_)
+                            .addComponent(isInfCorrectedComboBox_, 0, 51, Short.MAX_VALUE)
+                            .addComponent(refTubeLengthTextField_)
+                            .addComponent(opticalTubeLengthTextField_, javax.swing.GroupLayout.Alignment.TRAILING))))
+                .addContainerGap())
+        );
+        jPanel2Layout.setVerticalGroup(
+            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel2Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel2)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel3)
+                    .addComponent(numericalApertureTextField_, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(refractiveIdxTextField_, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel4))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(refMagnificationTextField_, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel5))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel6)
+                    .addComponent(isInfCorrectedComboBox_, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(TubeLengthWarningLabel_)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel8)
+                    .addComponent(refTubeLengthTextField_, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel7)
+                    .addComponent(opticalTubeLengthTextField_, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(20, 20, 20))
+        );
+
+        jLabel9.setText("EyePiece (From Imaging Plane To Camera)");
+
+        eyePieceMagnificationTextField_.setHorizontalAlignment(javax.swing.JTextField.TRAILING);
+        eyePieceMagnificationTextField_.setText("1");
+
+        jLabel10.setText("EyePiece Magnification");
+
+        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
+        jPanel1.setLayout(jPanel1Layout);
+        jPanel1Layout.setHorizontalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addGap(10, 10, 10)
+                        .addComponent(jLabel10)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(eyePieceMagnificationTextField_, javax.swing.GroupLayout.PREFERRED_SIZE, 49, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addComponent(jLabel9)
+                        .addGap(0, 0, Short.MAX_VALUE)))
+                .addContainerGap())
+        );
+        jPanel1Layout.setVerticalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jLabel9)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(eyePieceMagnificationTextField_, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel10))
+                .addGap(0, 11, Short.MAX_VALUE))
+        );
+
+        SaveChanges.setText("Save");
+        SaveChanges.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                SaveChangesActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
+        getContentPane().setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jLabel1)
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(jPanel1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(SaveChanges)
+                .addContainerGap())
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(jLabel1)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(SaveChanges)
+                .addGap(5, 5, 5))
+        );
+
+        pack();
+    }// </editor-fold>//GEN-END:initComponents
+
+    private void numericalApertureTextField_ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_numericalApertureTextField_ActionPerformed
+        double temp = Double.parseDouble( numericalApertureTextField_.getText() );
+        if( temp <= 0 ) { 
+            numericalApertureTextField_.setText( Double.toString( curNumAperture_ ) );
+        } else {
+            curNumAperture_ = temp;
+        }
+
+    }//GEN-LAST:event_numericalApertureTextField_ActionPerformed
+
+    private void opticalTubeLengthTextField_ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_opticalTubeLengthTextField_ActionPerformed
+        double temp = Double.parseDouble( opticalTubeLengthTextField_.getText() );
+        if( temp <= 0 ) {
+            opticalTubeLengthTextField_.setText( Double.toString( actualTubeLength_ ));
+        } else {
+            actualTubeLength_ = temp;
+        }
+        tubeLengthValidatePrompt();
+    }//GEN-LAST:event_opticalTubeLengthTextField_ActionPerformed
+
+    private void SaveChangesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_SaveChangesActionPerformed
+        model_.setEyePieceMagnification(eyePieceMagnification_);
+        model_.setIsInfinityCorrectedObjective(isInfinityCorrected_, referenceTubeLength_, manufacturerMagnification_, actualTubeLength_);
+        model_.setNumericalAperture(curNumAperture_);
+        model_.setObjectiveRefractiveIdx(curIndexRefraction_);
+        //for now, close the window
+        formWindowClosing(null);
+    }//GEN-LAST:event_SaveChangesActionPerformed
+
+    private void refractiveIdxTextField_ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_refractiveIdxTextField_ActionPerformed
+        double temp = Double.parseDouble( refractiveIdxTextField_.getText() );
+        if( temp <= 0 ) {
+            refractiveIdxTextField_.setText( Double.toString( curIndexRefraction_ ));
+        } else {
+            curIndexRefraction_ = temp;
+        }
+    }//GEN-LAST:event_refractiveIdxTextField_ActionPerformed
+
+    private void isInfCorrectedComboBox_ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_isInfCorrectedComboBox_ActionPerformed
+        String temp = (String) isInfCorrectedComboBox_.getSelectedItem();
+        if( temp.equals( isInfCorrectedOptions_[0] )) {
+            isInfinityCorrected_ = true;
+        } else if ( temp.equals( isInfCorrectedOptions_[1] )) {
+            isInfinityCorrected_ = false;
+        } else {
+            setCurrentInfinityCorrectedComboBox();
+        }
+        tubeLengthValidatePrompt();
+    }//GEN-LAST:event_isInfCorrectedComboBox_ActionPerformed
+
+    private void refMagnificationTextField_ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_refMagnificationTextField_ActionPerformed
+        double temp = Double.parseDouble( refMagnificationTextField_.getText() );
+        if( temp <= 0 ) {
+            refMagnificationTextField_.setText( Double.toString(manufacturerMagnification_ ));
+        } else {
+            manufacturerMagnification_ = temp;
+        }
+    }//GEN-LAST:event_refMagnificationTextField_ActionPerformed
+
+    private void refTubeLengthTextField_ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_refTubeLengthTextField_ActionPerformed
+        double temp = Double.parseDouble( refTubeLengthTextField_.getText() );
+        if( temp <= 0 ) {
+            refTubeLengthTextField_.setText( Double.toString(referenceTubeLength_ ));
+        } else {
+            referenceTubeLength_ = temp;
+        }
+        tubeLengthValidatePrompt();
+    }//GEN-LAST:event_refTubeLengthTextField_ActionPerformed
+
+    /** 
+     * Called When This Form Window Closes - Swing GUI Builder Implementation
+     * Mainly Stores most recent input values to persistent memory for default use next time
+     * 
+     * @param evt 
+     */
+    private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
+
+        prefs_.putDouble(NUM_APERTURE_KEY, curNumAperture_);
+        prefs_.putDouble(REFRACTIVE_IDX_KEY, curIndexRefraction_);
+        prefs_.putBoolean(INFINITY_CORRECTION_KEY, isInfinityCorrected_);
+        prefs_.putDouble(MANUFACTURER_MAGNIFICATION_KEY, manufacturerMagnification_);
+        prefs_.putDouble(REFERENCE_TUBE_LENGTH_KEY, referenceTubeLength_);
+        prefs_.putDouble(ACTUAL_TUBE_LENGTH_KEY, actualTubeLength_);
+        prefs_.putDouble(EYEPIECE_MAGNIFICATION_KEY, eyePieceMagnification_);
+       
+        this.setVisible(false);
+    }//GEN-LAST:event_formWindowClosing
+
+    @Override
+    public void dispose() {
+        formWindowClosing(null);
+    }
+    
+    /**
+     *  Method For Updating the Objective Infinity Corrected Combo Box in the Case of there being more than two binary options.
+     * <p>
+     *  To isolate key selection logic, this class uses logic on the class members to update the combo box. 
+     *  This may change from use of a boolean to a more variant type but currently uses isInfinityCorrected_
+     *  to selected from isInfCorrectedOptions_;
+     * 
+     * @see #isInfinityCorrected_
+     * @see #isInfCorrectedOptions_
+     */
+    private void setCurrentInfinityCorrectedComboBox( ) {
+        isInfCorrectedComboBox_.setSelectedItem( ( isInfinityCorrected_ ? isInfCorrectedOptions_[0] : isInfCorrectedOptions_[1] ) );
+    }
+    
+    /**
+     *  Determines whether or not to warn the user on their choice of tube length.
+     *   Currently this only checks to see if the reference tube and actual tube length 
+     *   of a non-infinity corrected Microscope are not the same and warns the user 
+     *   about their system.
+     *   <p>
+     *   Future iterations may take into account actual reference tube lengths for specific 
+     *   infinity corrected objectives.
+     * 
+     * @see #referenceTubeLength_
+     * @see #actualTubeLength_
+     * @see #isInfinityCorrected_
+     * 
+     */
+    private void tubeLengthValidatePrompt() {
+        if( !isInfinityCorrected_ && referenceTubeLength_ != actualTubeLength_ ) {
+            TubeLengthWarningLabel_.setText( MISMATCHED_TUBE_LENGTH_WARNING );
+        } else {
+            //Remove Warning
+            TubeLengthWarningLabel_.setText( "" );
+        }
+    }
+ 
+    // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton SaveChanges;
+    private javax.swing.JLabel TubeLengthWarningLabel_;
+    private javax.swing.JTextField eyePieceMagnificationTextField_;
+    private javax.swing.JComboBox isInfCorrectedComboBox_;
+    private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel10;
+    private javax.swing.JLabel jLabel2;
+    private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel5;
+    private javax.swing.JLabel jLabel6;
+    private javax.swing.JLabel jLabel7;
+    private javax.swing.JLabel jLabel8;
+    private javax.swing.JLabel jLabel9;
+    private javax.swing.JPanel jPanel1;
+    private javax.swing.JPanel jPanel2;
+    private javax.swing.JTextField numericalApertureTextField_;
+    private javax.swing.JTextField opticalTubeLengthTextField_;
+    private javax.swing.JTextField refMagnificationTextField_;
+    private javax.swing.JTextField refTubeLengthTextField_;
+    private javax.swing.JTextField refractiveIdxTextField_;
+    // End of variables declaration//GEN-END:variables
+
+    /**
+     *  Currently no need to provide Updates but may change in future
+     * 
+     * @param caller
+     * @param event 
+     */
+    @Override
+    public void update(ModelUpdateDispatcher caller, int event) {
+        //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    /**
+     *  Enables the GUI and sets it on top of all other windows, due to need to be 
+     *  saved before components are actually implemented and to avoid user confusion.
+     * @param enable 
+     */
+    @Override
+    public void guiEnable(boolean enable) {
+        if( enable == true ) {
+            assert( model_ != null );
+        }
+        setVisible(enable);
+        setAlwaysOnTop(enable);
+    }
+
+    /**
+     * Callback to store the new model reference if the model reference is null, 
+     * (never initialized or altered through onUnregisteredToModel).
+     * 
+     * @param registeredModel 
+     */
+    @Override
+    public void onRegisteredToModel(ModelUpdateDispatcher registeredModel) {
+        if( model_ == null && registeredModel instanceof MicroscopeModel ) {
+            model_ = (MicroscopeModel) registeredModel;
+            if( model_.isNullEquivalent() ) {
+                //populate model with preferences if its a non-meaningful model
+                model_.setEyePieceMagnification(eyePieceMagnification_);
+                model_.setIsInfinityCorrectedObjective(isInfinityCorrected_, referenceTubeLength_, manufacturerMagnification_, actualTubeLength_);
+                model_.setNumericalAperture(curNumAperture_);
+                model_.setObjectiveRefractiveIdx(curIndexRefraction_);
+            } else {
+                //adjust View variables to Microscope Model
+                curNumAperture_ = model_.getNumericalAperture();
+                curIndexRefraction_ = model_.getObjectiveRefractiveIdx();
+                isInfinityCorrected_ = model_.getIsInfinityCorrectedObjective();
+                manufacturerMagnification_ = model_.getObjectiveMagnification();
+                referenceTubeLength_ = model_.getRefTubeLength();
+                actualTubeLength_ = model_.getOpticalTubeFocalLength();
+                eyePieceMagnification_ = model_.getEyePieceMagnification();
+            }
+        }
+        
+    }
+
+    /**
+     * Callback to set the current Model reference to null when unregistered in preparation
+     * for other location models.
+     * <p>
+     * TODO:  expand this to deal with current imageWindows and redrawing as well.
+     * 
+     * @param unregisteredModel 
+     */
+    @Override
+    public void onUnregisteredToModel(ModelUpdateDispatcher unregisteredModel) {
+        if( model_ != null && unregisteredModel == model_ ) {
+            model_ = null;
+        }
+    }
+}
