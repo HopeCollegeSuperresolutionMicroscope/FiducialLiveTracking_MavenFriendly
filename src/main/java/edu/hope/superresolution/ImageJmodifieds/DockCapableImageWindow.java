@@ -20,7 +20,7 @@ import net.miginfocom.swing.MigLayout;
  */
 public class DockCapableImageWindow extends ImageWindow {
     
-    DockCapableImageWindow( String title, ImPlusListenerDockable dockEast, ImPlusListenerDockable dockWest, ImPlusListenerDockable dockSouth ) {
+    DockCapableImageWindow( String title, ImPlusListenerDockablePanel dockEast, ImPlusListenerDockablePanel dockWest, ImPlusListenerDockablePanel dockSouth ) {
         super(title);
         
         layoutDockables( dockEast, dockWest, dockSouth );
