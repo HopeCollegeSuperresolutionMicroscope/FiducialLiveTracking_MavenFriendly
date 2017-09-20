@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd" >
+
+
+<suite name = "ImageJAdapationSuite" >
+    <test name="PropertyNotifyingImagePlusTest" >       
+        <parameter name="selectConstructorKey" value="2" />
+        <parameter name="numDummyRecursions" value="4" />        
+        <classes>
+            <class name = "edu.hope.superresolution.ImageJmodifieds.PropertyNotifiyingImagePlusNGTest" />
+        </classes>
+    </test>
+    
+</suite>
