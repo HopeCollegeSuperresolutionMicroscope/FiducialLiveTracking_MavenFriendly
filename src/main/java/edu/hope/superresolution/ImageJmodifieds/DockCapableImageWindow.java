@@ -30,7 +30,7 @@ public class DockCapableImageWindow extends ImageWindow {
     DockCapableImageWindow( ImagePlus imp ) {
         super(imp, null);
         
-        layoutDockables( dockEast, dockWest, dockSouth );
+        //layoutDockables( dockEast, dockWest, dockSouth );
     }
        
     DockCapableImageWindow( ImagePlus imp, ImageCanvas ic ) {
