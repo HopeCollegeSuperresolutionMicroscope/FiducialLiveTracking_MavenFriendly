@@ -1,3 +1,6 @@
+#UserSystem Stuff
+UserSystem.properties
+
 #Maven Related gitignore
 target/
 pom.xml.tag
