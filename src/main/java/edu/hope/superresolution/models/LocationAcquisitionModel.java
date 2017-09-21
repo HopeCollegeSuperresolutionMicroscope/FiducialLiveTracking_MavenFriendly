@@ -18,6 +18,7 @@ import ij.ImagePlus;
 import ij.gui.ImageWindow;
 import ij.process.ImageProcessor;
 import java.util.ArrayList;
+import java.util.Iterator;
 import org.micromanager.api.ScriptInterface;
 import org.micromanager.utils.AutofocusManager;
 import org.micromanager.utils.MMException;
@@ -230,6 +231,75 @@ public class LocationAcquisitionModel {
         
         }
     
+    
+    /**
+     * Copy Constructor - Shallow Copy of The Acquisition List and the final 
+     * selectedLocationAcquisition.  Location Models are linked, but new models won't be registered.
+     * @param source 
+     */
+    public LocationAcquisitionModel( LocationAcquisitionModel source ) {
+        
+        pluginInstance_ = source.pluginInstance_;
+        //Should we keep this?
+        imgWin_ = source.imgWin_;
+
+        app_ = source.app_;
+        //Set Gaussian Parameters graphical Components
+        //This is a constrained structure currently given constructor updates
+        gaussParamModel_ = source.gaussParamModel_;
+        //microModelForm_ = new MicroscopeModelForm();
+        paramForm_ = source.paramForm_;
+        gaussParamModel_.registerModelListener( paramForm_ );
+        gaussParamModel_.registerModelListener(  gaussianParameterListener_ );
+        
+        //Create An Action Listener for Clicking on the track Button
+        //Should be variable based on a new parameter for the sake of other acquisition types
+        AcquisitionSubmitAction trackAction = new AcquisitionSubmitAction() {
+            
+            @Override
+            public void submitResponse( ) {
+                //Sets the autofocus to FiducialAutofocus
+                AutofocusManager afMgr = app_.getAutofocusManager();
+                afMgr.setAFPluginClassName(FiducialAutoFocus.class.getName());
+                try {
+                    afMgr.refresh();
+                } catch (MMException ex) {
+                    org.micromanager.utils.ReportingUtils.showError(ex);
+                }
+                //Notify User Of New Autofocus Options
+                org.micromanager.utils.ReportingUtils.showMessage("New Autfocus Added: " + FiducialAutoFocus.DEVICE_NAME);
+                try {
+                    afMgr.selectDevice(FiducialAutoFocus.DEVICE_NAME);
+                    //This is Stupidly Deprecated without a replacement for opening the Dialog
+                    // runAcquisition does not work well
+                } catch (MMException ex) {
+                    org.micromanager.utils.ReportingUtils.showError(ex);
+                }
+                //Show Acquisition
+                app_.getAcqDlg().setVisible(true);
+            } 
+        };
+        
+        //Set Location Model graphical components
+        fidSelectForm_ = new FiducialSelectForm( /*selectedLocationsAcquisition_,*/ paramForm_, trackAction, imgWin_, pluginInstance_ );
+        
+        imgView_ = new ImageViewController( imgWin_/*, selectedLocationsAcquisition_*/ );
+        
+        //Copy the Current fLocationAcquisition
+        Iterator< FiducialLocationModel > it = source.fLocationAcquisitions_.iterator();
+        while( it.hasNext() ) {
+            fLocationAcquisitions_.add(it.next());
+        }
+        selectedLocationsAcquisition_ = source.selectedLocationsAcquisition_;
+ 
+        //turn on all GUIs for the model
+        selectedLocationsAcquisition_.enableAllListenerGUIs(true);
+        
+        //Create A Unique AcquisitionTitle and Increment the acquisitionTitleIdx for uniqueness
+        String temp = ACQUISITIONTITLEBASE + "_" +acquisitionTitleIdx_ + "_";
+        uniqueAcquisitionTitle_ = temp;
+        acquisitionTitleIdx_++;
+    }
     
     /**
     *  Pushes a new Fiducial Location Model Onto fLocationAcquistions_ (internal stack)
@@ -490,5 +560,25 @@ public class LocationAcquisitionModel {
             }
         }
     }
+    
+    /**
+     * Returns the number of FiducialLocationModels that have been taken in this moment
+     * 
+     * @return 
+     */
+    public int getNumFiducialLocationModels( ) {
+        return fLocationAcquisitions_.size();
+    }
+    
+    /**
+     * Returns A LocationAcquisitionModel encompassing the indices from start to end.
+     * <p>
+     * Note: If startIdx or endIdx is out of order, the minimum index will be chosen.
+     * 
+     * @return 
+     */
+    public LocationAcquisitionModel getCurrentLocationAcquisitionCopy( ) {
+        return new LocationAcquisitionModel(this);
+    }    
     
 }
