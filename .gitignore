@@ -1,5 +1,5 @@
 #UserSystem Stuff
-/UserSystem.properties
+UserSystem.properties
 
 #Maven Related gitignore
 target/
