@@ -6,8 +6,11 @@
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
     <build>
+        <filters>
+            <filter>UserSystem.properties</filter>
+        </filters>
         <plugins>
-            <!-- Read Properties that User should've filled in -->
+            <!-- Read Properties that User should've filled in  -->
                   <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>properties-maven-plugin</artifactId>
@@ -51,7 +54,8 @@
                             <goal>jar</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${MMRunEnvironmentDir}\mmplugins</outputDirectory>      
+                            <outputDirectory>${MMRunEnvironmentDir}\mmplugins</outputDirectory>
+                            <!--<outputDirectory>C:\Program Files\Micro-Manager-1.4\mmplugins</outputDirectory>-->
                             <classifier>appRunTest</classifier>    
                         </configuration> 
                     </execution>

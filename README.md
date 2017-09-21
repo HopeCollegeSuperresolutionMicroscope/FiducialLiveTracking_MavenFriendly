@@ -31,7 +31,7 @@ how to open the Project in regards to that IDE for new contributors.
 
       - Finally, to run and Debug Directly from NetBeans, modify the UserSystem.properties file
         so that MMRunEnvironmentDir = {Absolute Path to Micromanager Installation).  This will copy any builds
-        to the directory.
+        to the directory.  IMPORTANT NOTE: Escape BackSlashes (i.e. \ is denoted by \\)
 
       -NetBeans Property Settings under Project Properties-> Run, may have Working Directory Set to the same directory (via Browse)
        and then Main Class set to ij.ImageJ.  If the Previous Step has been finished, every run call after a build, 
