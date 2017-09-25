@@ -5,20 +5,27 @@
  */
 package edu.hope.superresolution.models;
 
+import edu.hope.superresolution.ImageJmodifieds.TwoSliceSelector;
 import edu.hope.superresolution.MMgaussianfitmods.datasubs.ExtendedGaussianInfo;
 import edu.hope.superresolution.autofocus.FiducialAutoFocus;
 import edu.hope.superresolution.exceptions.NoFiducialException;
+import edu.hope.superresolution.genericstructures.VirtualDirectoryManager;
 import edu.hope.superresolution.livetrack.LiveTracking;
 import edu.hope.superresolution.views.FiducialSelectForm;
 import edu.hope.superresolution.views.ImageViewController;
 import edu.hope.superresolution.views.MicroscopeModelForm;
 import edu.hope.superresolution.views.ModifiedLocalizationParamForm;
 import edu.valelab.gaussianfit.utils.ReportingUtils;
+import ij.IJ;
 import ij.ImagePlus;
 import ij.gui.ImageWindow;
 import ij.process.ImageProcessor;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.micromanager.api.ScriptInterface;
 import org.micromanager.utils.AutofocusManager;
 import org.micromanager.utils.MMException;
@@ -78,6 +85,7 @@ public class LocationAcquisitionModel {
         }
         
     }
+  
     
     /**
      * Enumerated Class for Fit Settings Modes (to be expanded later possibly)
@@ -113,10 +121,12 @@ public class LocationAcquisitionModel {
     //Single Reference to be passed to all FiducialLocationModel
     private final GaussianFitParamModel gaussParamModel_;  //Parameters are not expected to change references across Acquisition Models
     private final GaussianFitParameterListener gaussianParameterListener_ = new GaussianFitParameterListener();
-    //Unique Identifier Used for ImageWindows, etc, pertaining to this Acquisition
+    //Unique Identifiers Used for ImageWindows, etc, pertaining to this Acquisition and any saving operations
+    private static VirtualDirectoryManager acqSaveDirectory_ = new VirtualDirectoryManager();  //TempSave Directory for any VirtualStacks to Be Created
     public static final String ACQUISITIONTITLEBASE = "FiducialLocationAcquisition";
-    private final String uniqueAcquisitionTitle_; //Used for uniqueAcquisitionTitle
     private static int acquisitionTitleIdx_ = 0; //Used for cataloging of indices
+    private final String uniqueAcquisitionTitle_; //Used for uniqueAcquisitionTitle
+
     
     /**
      * Inner Helper Class for Producing Smaller Events when a Window Submit (i.e. Fiducial Form Track Button) is clicked
@@ -200,37 +210,14 @@ public class LocationAcquisitionModel {
  
         //turn on all GUIs for the model
         selectedLocationsAcquisition_.enableAllListenerGUIs(true);
-        
+
         //Create A Unique AcquisitionTitle and Increment the acquisitionTitleIdx for uniqueness
-        String temp = ACQUISITIONTITLEBASE + "_" +acquisitionTitleIdx_ + "_";
+        String temp = ACQUISITIONTITLEBASE + "_" + acquisitionTitleIdx_ + "_";
         uniqueAcquisitionTitle_ = temp;
         acquisitionTitleIdx_++;
-        //Attach A listener to any Windows
-        //This needs some sort of frame skipping mechanism for processing
-        /*ImageListener iListener = new ImageListener() {
-            @Override
-            public void imageOpened(ImagePlus ip) {
-                imageUpdated(ip);
-            }
-
-            @Override
-            public void imageClosed(ImagePlus ip) {
-                //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-            }
-
-            @Override
-            public void imageUpdated(ImagePlus ip) {
-                if( ip.getWindow() == imgWin_ ) {
-                    ij.IJ.log( " Calling Update ");
-                    selectedLocationsAcquisition_.updateImagePlus(ip);
-                }
-            }
-            
-        };
-        ImagePlus.addImageListener( iListener );*/
         
-        }
-    
+    }
+
     
     /**
      * Copy Constructor - Shallow Copy of The Acquisition List and the final 
@@ -249,8 +236,9 @@ public class LocationAcquisitionModel {
         gaussParamModel_ = source.gaussParamModel_;
         //microModelForm_ = new MicroscopeModelForm();
         paramForm_ = source.paramForm_;
-        gaussParamModel_.registerModelListener( paramForm_ );
-        gaussParamModel_.registerModelListener(  gaussianParameterListener_ );
+        //This might need to be separate
+        //gaussParamModel_.registerModelListener( paramForm_ );
+        //gaussParamModel_.registerModelListener(  gaussianParameterListener_ );
         
         //Create An Action Listener for Clicking on the track Button
         //Should be variable based on a new parameter for the sake of other acquisition types
@@ -299,6 +287,8 @@ public class LocationAcquisitionModel {
         String temp = ACQUISITIONTITLEBASE + "_" +acquisitionTitleIdx_ + "_";
         uniqueAcquisitionTitle_ = temp;
         acquisitionTitleIdx_++;
+        
+
     }
     
     /**
@@ -402,12 +392,8 @@ public class LocationAcquisitionModel {
      * 
      * @param idx The index to get from in fLocationAcquisitions_ (inner Acquisition stack) 
      * @return    The FiducialLocationModel at the given (zero-based) idx
-     * @throws Exception Thrown if idx exceeds the size of the given stack
      */
-    public FiducialLocationModel getFiducialLocationModel( int idx ) throws Exception {
-        if( idx >= fLocationAcquisitions_.size() ) {
-            throw new Exception( "Fiducial Location Model index out of Bounds");
-        }
+    public FiducialLocationModel getFiducialLocationModel( int idx ) {
         return fLocationAcquisitions_.get( idx );
     }
     
@@ -580,5 +566,35 @@ public class LocationAcquisitionModel {
     public LocationAcquisitionModel getCurrentLocationAcquisitionCopy( ) {
         return new LocationAcquisitionModel(this);
     }    
+    
+    /**
+     * Returns a Representative ImageProcessor of the Acquisitions being polled.  For Live Windows, this will return
+     * the most recent ImagePlus while for static contexts it will return the current ImagePlus.
+     * <p>
+     * Returned objects are references to copies potentially so only use for referencing attributes.
+     * 
+     * @return - An ImagePlus instance with the same general properties of the last ImageWindow Instance.
+     */
+    public ImageProcessor getRepresentativeImageProc() {
+        return imgWin_.getImagePlus().getProcessor();
+    }
+    
+    /**
+     * Gets the name of this Acquisition (unique Among These Models)
+     * @return 
+     */
+    public String getAcquisitionTitle() {
+        return uniqueAcquisitionTitle_;
+    }
+    
+    /**
+     * Returns the Instance of VirtualDirectory Management that pertains to LocationAcquisition Models
+     * And their actions.  This was made so that Virtual Stack Windows might be created to show
+     * Operations in real time.
+     *    
+     */
+    public static VirtualDirectoryManager getAcquisitionSaveDirectory() {
+        return acqSaveDirectory_;
+    }
     
 }

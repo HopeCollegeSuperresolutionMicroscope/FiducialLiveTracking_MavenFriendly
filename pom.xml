@@ -11,24 +11,24 @@
         </filters>
         <plugins>
             <!-- Read Properties that User should've filled in  -->
-                  <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>properties-maven-plugin</artifactId>
-        <version>1.0-alpha-1</version>
-        <executions>
-          <execution>
-            <phase>initialize</phase>
-            <goals>
-              <goal>read-project-properties</goal>
-            </goals>
-            <configuration>
-              <files>
-                <file>./UserSystem.properties</file>
-              </files>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>properties-maven-plugin</artifactId>
+                <version>1.0-alpha-1</version>
+                <executions>
+                    <execution>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>read-project-properties</goal>
+                        </goals>
+                        <configuration>
+                            <files>
+                                <file>./UserSystem.properties</file>
+                            </files>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- For Netbeans Specifically, Specify a surefire-plugin that will pass through parameters -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -41,7 +41,7 @@
                         <suiteXmlFile>src\test\java\edu\hope\superresolution\ImageJmodifieds\testng.xml</suiteXmlFile>
                     </suiteXmlFiles>
                 </configuration>
-            </plugin>
+            </plugin>            
             <!-- Copy into mmplugins dir of the ApplicationDirectory to run -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -72,7 +72,7 @@
         <dependency>
             <groupId>net.imagej</groupId>
             <artifactId>ij</artifactId>
-            <version>1.51p</version>
+            <version>1.48v</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -153,6 +153,11 @@
             <artifactId>junit</artifactId>
             <scope>test</scope>
             <version>4.11</version>
+        </dependency>
+        <dependency>
+            <groupId>org.micromanager</groupId>
+            <artifactId>MMAcqEngine</artifactId>
+            <version>1.4.22</version>
         </dependency>
     </dependencies>
     <properties>

@@ -5,6 +5,7 @@
  */
 package edu.hope.superresolution.ImageJmodifieds;
 
+import edu.hope.superresolution.views.FiducialModelFocusEdgesSelection;
 import edu.hope.superresolution.views.TestSliceInfoDisplayPanel;
 import ij.ImageStack;
 import ij.gui.StackWindow;
@@ -50,6 +51,25 @@ public class UnderDockCapableStackImageWindowNGTest {
         ImageStack iStack = ImageStack.create( 400, 400, 6, 16 );
         PropertyNotifyingImagePlus ip = new PropertyNotifyingImagePlus( "This is the title", iStack );
         TestSliceInfoDisplayPanel displayPanel = new TestSliceInfoDisplayPanel( UIlock );
+        StackWindow win = new UnderDockCapableStackImageWindow( ip, displayPanel );
+        try {
+            synchronized( UIlock ) {
+                UIlock.wait();
+            }
+        } catch (InterruptedException ex) {
+            Logger.getLogger(UnderDockCapableStackImageWindowNGTest.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            
+        }
+    }
+    
+        @Test
+        public void testOtherSomeMethod() {
+        System.out.println("Testing Displaying Slices In a Dock");
+        final Object UIlock = new Object();
+        ImageStack iStack = ImageStack.create( 400, 400, 6, 16 );
+        PropertyNotifyingImagePlus ip = new PropertyNotifyingImagePlus( "This is the title", iStack );
+        FiducialModelFocusEdgesSelection displayPanel = new FiducialModelFocusEdgesSelection( null );
         StackWindow win = new UnderDockCapableStackImageWindow( ip, displayPanel );
         try {
             synchronized( UIlock ) {

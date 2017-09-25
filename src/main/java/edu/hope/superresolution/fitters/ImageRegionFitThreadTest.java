@@ -557,8 +557,8 @@ abstract public class ImageRegionFitThreadTest extends ExtendedGaussianInfo impl
       ProgressThread pt = new ProgressThread(sourceList_);
       pt.init();
       
-      
       } catch (OutOfMemoryError ome) {
+         ome.printStackTrace();
          ij.IJ.error("Out Of Memory");
       }
 

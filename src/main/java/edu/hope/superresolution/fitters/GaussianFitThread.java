@@ -188,7 +188,7 @@ public class GaussianFitThread extends GenericBaseGaussianFitThread {
     }
     
     /**
-     * One Solution to Scaling the Data Set to ensure it includes the correct values.
+     * One Solution to Scaling the Data Set is to ensure it includes the correct values.
      * This solution individually moves the x and y values away from each pixel at 
      * the maxValue until they are below the thresholdVal to produce a data set of certain
      * pixels or until there is an obvious shift in the x and y only (shared edge)
