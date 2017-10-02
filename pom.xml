@@ -78,6 +78,77 @@
                 </plugins>
             </build>
         </profile>
+        <profiles>
+        <profile>
+            <id>run</id>
+            <build>
+                <plugins>
+                    <!-- Read user SystemProperties -->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>properties-maven-plugin</artifactId>
+                        <version>1.0-alpha-1</version>
+                        <executions>
+                            <execution>
+                                <phase>initialize</phase>
+                                <goals>
+                                    <goal>read-project-properties</goal>
+                                </goals>
+                                <configuration>
+                                    <files>
+                                        <file>./UserSystem.properties</file>
+                                    </files>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- Copy into mmplugins dir of the ApplicationDirectory to run -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-jar-plugin</artifactId>
+                        <version>3.0.2</version>
+                        <executions>
+                            <execution>
+                                <id>copy-jar</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${MMRunEnvironmentDir}\mmplugins</outputDirectory>
+                                    <classifier>appRunTest</classifier>    
+                                </configuration> 
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- Attempt to produce an Executable That Will Run The Debug for Maven -->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>1.3.2</version>
+                        <executions>
+                            <execution>
+                                <id>testRun</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration> 
+                            <executable>java</executable>
+                            <workingDirectory>${MMRunEnvironmentDir}</workingDirectory>
+                            <includeProjectDependencies>true</includeProjectDependencies>
+                            <arguments>
+                                <argument>-classpath</argument>                                
+                                <argument>{MMRunEnvironmentDir}\mmplugins\Aquisition_Tools\Gaussian.jar;${MMRunEnvironmentDir}\ij.jar</argument>
+                                <argument>ij.ImageJ</argument>
+                            </arguments>
+                        </configuration>                            
+                    </plugin> 
+                    
+                </plugins>
+            </build>
+        </profile>
     </profiles>
     <build>
         <filters>
