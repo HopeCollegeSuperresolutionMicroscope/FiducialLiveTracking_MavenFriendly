@@ -144,7 +144,7 @@ public class FindLocalMaxima {
             
             //Check to See if the Value is above the overall SNR permitted
             if( !stop && (threshold+ snr * noiseMax == 0 || 
-                    (iProc.getPixel(mi, mj)  > threshold + snr * noiseMax))) {
+                    (iProc.getPixel(mi, mj)  > threshold/* + snr * noiseMax*/))) {
                 maxima.addPoint(mi, mj);
             }
          }

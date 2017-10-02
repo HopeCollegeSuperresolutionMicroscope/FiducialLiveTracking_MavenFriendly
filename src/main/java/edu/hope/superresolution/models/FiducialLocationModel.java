@@ -13,11 +13,11 @@ import edu.hope.superresolution.genericstructures.FiducialTravelDiff2D;
 import edu.hope.superresolution.genericstructures.TravelMatchCase;
 import edu.hope.superresolution.imagetrack.FiducialMoveFinder;
 import edu.hope.superresolution.processors.FiducialAreaProcessor;
-import ij.ImageListener;
 import ij.ImagePlus;
 import ij.gui.ImageWindow;
 import ij.gui.Roi;
 import ij.process.ImageProcessor;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -72,13 +72,14 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
     private FiducialAreaProcessor fAreaProcessor_;
     private ImagePlus ip_;
     private FiducialMoveFinder fMoveFinder_ = null;
-    private final String acquisitionTitle_; //Used For Displays Correspondings to the owning Acquisition
     
     private boolean showAll_ = false;  //Whether or not to show all changes or only current selected Fiducial Area    
+    private final String acquisitionTitle_;
     
     //Loose Implementation of Listeners with update Method that will be called
     //These Views require a reference to the model, to do their own updating
-    public FiducialLocationModel( ImagePlus ip, FiducialAreaProcessor fAreaProcessor, String acquisitionTitle ) {
+    public FiducialLocationModel( ImagePlus ip, FiducialAreaProcessor fAreaProcessor, 
+                                    String acquisitionTitle ) {
         
         trackNumber_ = 0;
         acquisitionTitle_ = acquisitionTitle;
@@ -94,11 +95,12 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         
     }
     
-    public FiducialLocationModel( final ImageWindow imgWin, FiducialAreaProcessor fAreaProcessor, String acquisitionTitle ) {
+    public FiducialLocationModel( final ImageWindow imgWin, FiducialAreaProcessor fAreaProcessor,
+                                    String acquisitionTitle ) {
 
         trackNumber_ = 0;
         acquisitionTitle_ = acquisitionTitle;
-
+        
         ip_ = imgWin.getImagePlus();
         
         try {
@@ -122,7 +124,7 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
     public FiducialLocationModel( ImagePlus ip, FiducialLocationModel fLocationModel, 
                                         String acquisitionTitle ) throws NoFiducialException {
         
-        acquisitionTitle_ = acquisitionTitle; 
+        acquisitionTitle_ = acquisitionTitle;
         
         ip_ = ip;
         minNumFiducialsForTrack_ = fLocationModel.minNumFiducialsForTrack_;
@@ -408,6 +410,8 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
     /**
      * Updates the ImagePlus and all Fiducial Areas in the case of a live imaging sequence.
      * This resets and rescans all Fiducial Areas.
+     * <p>
+     * TODO: Make thread Safe
      * 
      * @param ip - the new imagePlus
      * @return - <code>true</code> if the ImagePlus was different or not null <code>false</code>
@@ -424,6 +428,18 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         }
         
         return true;
+    }
+    
+    /**
+     * Returns the ImageProcessor on which all find operations are performed.
+     * 
+     * This May or may not be a reference to the internal processor given the nature of ImagePlus.
+     * <p>
+     * TODO: Make thread Safe
+     * @return 
+     */
+    public ImageProcessor getImageProcessor() {
+        return ip_.getProcessor();
     }
     
     /**

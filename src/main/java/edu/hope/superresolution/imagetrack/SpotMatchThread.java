@@ -21,6 +21,7 @@ import ij.process.ImageProcessor;
 import ij.process.ShortProcessor;
 import java.awt.Color;
 import java.awt.Window;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -105,6 +106,7 @@ public class SpotMatchThread implements Runnable {
      *                                         (from a Virtual Spot to a Real Spot track).  This is used
      *                                          as secondary validation in competing real match cases currently.
      * @param acquisitionTitle  - The Title Used For Graphical Displays that pertains to the Acquisition calling this class
+     * @param acquisitionSaveSpace - The Space in which Images Can Be showed
      */
     SpotMatchThread( List< FiducialArea > prevFAreas, BlockingQueue< List<FiducialArea> > shiftedFAreasList,
                     List< TravelMatchCase > matchResults, double percent, double failLimitRatio, int maxMissingFrames,
@@ -855,17 +857,21 @@ public class SpotMatchThread implements Runnable {
             if( imWin1 != null ) {
                 acquisitionTitle_ = WindowManager.getUniqueName(acquisitionTitle_ );
             }
-            iStack = new ImageStack(copyProc.getWidth(), copyProc.getHeight());
+            iStack = new ImageStack(copyProc.getWidth(), copyProc.getHeight() );
             iStack.addSlice(copyProc);
             ImagePlus ip = new ImagePlus(acquisitionTitle_, iStack);
             sWin = new StackWindow(ip);
-            WindowManager.addWindow(sWin);
+            //TODO: Merge with WindowManager
+            //WindowListener
+            //sWin.addWindowListener( new WindowListner() {);
+            //WindowManager.addWindow(sWin);
         } else {
             sWin = (StackWindow) imWin1;
             sWin.getImagePlus().getStack().addSlice(copyProc);
         }
         ImagePlus ip = sWin.getImagePlus();
-
+        
+        
         Overlay ov = ip.getOverlay();
         if (ov == null) {
             ov = new Overlay();

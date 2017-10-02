@@ -5,8 +5,104 @@
     <artifactId>FiducialLiveTracking</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
+    <profiles>
+        <profile>
+            <id>debug-attach-remote</id>
+            <build>
+                <plugins>
+                    <!-- Read user SystemProperties -->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>properties-maven-plugin</artifactId>
+                        <version>1.0-alpha-1</version>
+                        <executions>
+                            <execution>
+                                <phase>initialize</phase>
+                                <goals>
+                                    <goal>read-project-properties</goal>
+                                </goals>
+                                <configuration>
+                                    <files>
+                                        <file>./UserSystem.properties</file>
+                                    </files>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- Copy into mmplugins dir of the ApplicationDirectory to run -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-jar-plugin</artifactId>
+                        <version>3.0.2</version>
+                        <executions>
+                            <execution>
+                                <id>copy-jar</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${MMRunEnvironmentDir}\mmplugins</outputDirectory>
+                                    <classifier>appRunTest</classifier>    
+                                </configuration> 
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- Attempt to produce an Executable That Will Run The Debug for Maven -->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>1.3.2</version>
+                        <executions>
+                            <execution>
+                                <id>testRun</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration> 
+                            <executable>java</executable>
+                            <workingDirectory>${MMRunEnvironmentDir}</workingDirectory>
+                            <includeProjectDependencies>true</includeProjectDependencies>
+                            <arguments>
+                                <argument>-Xdebug</argument>
+                                <argument>-Xrunjdwp:transport=dt_socket,server=y,address=${debug.address},suspend=y</argument>
+                                <argument>-classpath</argument>                                
+                                <argument>{MMRunEnvironmentDir}\mmplugins\Aquisition_Tools\Gaussian.jar;${MMRunEnvironmentDir}\ij.jar</argument>
+                                <argument>ij.ImageJ</argument>
+                            </arguments>
+                        </configuration>                            
+                    </plugin> 
+                    
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
     <build>
+        <filters>
+            <filter>UserSystem.properties</filter>
+        </filters>
         <plugins>
+            <!-- Read Properties that User should've filled in  -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>properties-maven-plugin</artifactId>
+                <version>1.0-alpha-1</version>
+                <executions>
+                    <execution>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>read-project-properties</goal>
+                        </goals>
+                        <configuration>
+                            <files>
+                                <file>./UserSystem.properties</file>
+                            </files>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- For Netbeans Specifically, Specify a surefire-plugin that will pass through parameters -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -19,25 +115,8 @@
                         <suiteXmlFile>src\test\java\edu\hope\superresolution\ImageJmodifieds\testng.xml</suiteXmlFile>
                     </suiteXmlFiles>
                 </configuration>
-            </plugin>
-            <!-- Copy into mmplugins dir of the ApplicationDirectory to run -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>3.0.2</version>
-                <executions>
-                    <execution>
-                        <id>copy-jar</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>${MM_RUN_ENV_HOME}\mmplugins</outputDirectory>      
-                            <classifier>appRunTest</classifier>    
-                        </configuration> 
-                    </execution>
-                </executions>
-            </plugin>
+            </plugin>            
+
         </plugins>
     </build>  
     <dependencies>
@@ -49,7 +128,7 @@
         <dependency>
             <groupId>net.imagej</groupId>
             <artifactId>ij</artifactId>
-            <version>1.51p</version>
+            <version>1.48v</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -130,6 +209,11 @@
             <artifactId>junit</artifactId>
             <scope>test</scope>
             <version>4.11</version>
+        </dependency>
+        <dependency>
+            <groupId>org.micromanager</groupId>
+            <artifactId>MMAcqEngine</artifactId>
+            <version>1.4.22</version>
         </dependency>
     </dependencies>
     <properties>

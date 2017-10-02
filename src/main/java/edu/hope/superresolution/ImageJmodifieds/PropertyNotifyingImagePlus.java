@@ -1472,6 +1472,14 @@ public class PropertyNotifyingImagePlus extends ImagePlus {
     //An Access-ordered Event Queue of ClassNames and Their respective Objects
     private final Map<String, MasterSpecificEvent> pendingEventQueue_ = Collections.synchronizedMap( new LinkedHashMap<String, MasterSpecificEvent>( 20, .75f, true ) );
 
+    /**
+     * Nullary Constructor - For Later Initialization
+     * 
+     */
+     public PropertyNotifyingImagePlus() {
+         
+     }
+    
      /**
      * Constructs a PropertyNotifyingImagePlus from an Image or BufferedImage. The first
      * argument will be used as the title of the window that displays the image.

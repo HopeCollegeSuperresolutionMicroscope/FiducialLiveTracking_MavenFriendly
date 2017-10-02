@@ -5,12 +5,15 @@
  */
 package edu.hope.superresolution.autofocus;
 
+import edu.hope.superresolution.ImageJmodifieds.TwoSliceSelector;
 import edu.hope.superresolution.MMgaussianfitmods.datasubs.BoundedSpotData;
 import edu.hope.superresolution.exceptions.NoFiducialException;
 import edu.hope.superresolution.livetrack.LiveTracking;
 import edu.hope.superresolution.models.FiducialArea;
 import edu.hope.superresolution.models.FiducialLocationModel;
 import edu.hope.superresolution.models.LocationAcquisitionModel;
+import edu.hope.superresolution.views.FiducialModelFocusEdgesSelection;
+import edu.hope.superresolution.views.LocationAcquisitionDisplayWindow;
 import edu.valelab.gaussianfit.utils.ReportingUtils;
 import ij.IJ;
 import ij.ImagePlus;
@@ -58,6 +61,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
     private final static String SLOP_TRAVEL_UM_STR = "Slop Travel (um)";
     private final static String THRESHOLD_UNCERTAINTY_STR = "Max Threshold Uncertainty (nm)";
     private final static String MAX_ANTICIPATED_TRAVEL_STR = "Maximum Anticipated Lateral Travel (um)";
+    private final static String TEST_FIRST_SLOP_MOVE_STR = "Move First On Slop";
     
     //Default Values For First Time Start
     //Should become Programmatic
@@ -65,6 +69,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
     public boolean IS_SLOP_TRAVEL = false;
     public double SLOP_TRAVEL = .4;
     public double MAX_SCORE_UNCERTAINTY_THRESHOLD = 20;
+    public boolean TEST_FIRST_SLOP_MOVE = true;
     
     private ScriptInterface app_;
     private CMMCore core_;
@@ -75,7 +80,15 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
     //Foolish Globals Currently
     //private ImagePlus ipCurrent_;
     private ImageProcessor ipCurrent_;
-    private double threshold_ = 10;
+    private double threshold_ = 20;
+    //Focus Score Numbers Selected By User
+    private double outOfFocusThreshold_;
+    private double outOfFocusThresholdUncertanty_;
+    private double inFocusSelectedValue_;
+    private double inFocusSelectedUncertainty_;
+    //selection Between Relative and Absolute Best Focus Compared to Selection
+    private boolean seekBestFocusScore_ = true;
+    //Globals for tracking movements
     private int numImagesTaken_ = 0;
     private double curDist_ = 0;
     private double prevOutOfFocusZScore_ = 0;
@@ -90,8 +103,6 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
     private int dir_ = 1; //Direction for moving
     private double relativeXPixelTranslation_ = 0;
     private double relativeYPixelTranslation_ = 0;
-    //private double absXPixelTranslation_ = 0;
-    //private double absYPixelTranslation_ = 0;
     
     //local global list of all translationPoints for the currentAcquisition
     private List<FocusFrameTranslationObj> translationPoints_ = new ArrayList(); 
@@ -100,6 +111,133 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
     public ScoreMethods scoreMethod_ = ScoreMethods.avgRelativeZ;
     public enum ScoreMethods {
         avgRelativeZ, minRelativeZWithUncertainty
+    }
+    
+    public class SpuriousWakeGuardObject {
+        
+        private boolean waitGuard_ = false;
+        private final Object syncObj_ = new Object();
+        
+        public void doWait() {
+            synchronized (syncObj_) {
+                waitGuard_ = true;
+                while (waitGuard_) {
+                    try {
+                        super.wait(1000);
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(FiducialAutoFocus.class.getName()).log(Level.SEVERE, null, ex);
+                        Thread.interrupted();
+                    }
+                }
+            }
+        }
+        
+
+        public void doNotify() {
+            synchronized (syncObj_) {
+                waitGuard_ = false;
+                super.notify();
+            }
+        }
+        
+    }
+    
+    /**
+     * Abstract Implementation for Selector Actions that need to stall this focus Thread.
+     * 
+     */
+    abstract public class FocusThreadLockSelector implements TwoSliceSelector {
+        
+        private final SpuriousWakeGuardObject waitObject_;
+        
+        /**
+         * General Constructor - assumes waitObject is a only waiting on a single thread
+         * <p>
+         * The thread passing this object, may call waitObject.wait() and can be assured
+         * that the selectorAction will be called.  
+         * 
+         * @param waitObject 
+         */
+        public FocusThreadLockSelector( SpuriousWakeGuardObject waitObject ) {
+            waitObject_ = waitObject;
+        }
+        
+        /**
+         * Call in subclasses to release the wait
+         */
+        protected void signalWaitingObject() {
+                
+                waitObject_.doNotify();
+            
+        }
+    }
+    
+    /**
+     * Selector Action To Be Passed to Focus Selection Window
+     */
+    public class InOutFocusFiducialLocationSelector extends FocusThreadLockSelector {
+
+        private LocationAcquisitionModel locAcq_;
+        
+        InOutFocusFiducialLocationSelector( LocationAcquisitionModel locAcq, SpuriousWakeGuardObject waitObject ) {
+            super( waitObject );
+            locAcq_ = locAcq;
+        }
+        
+        /**
+         * Takes the Focus Data from the FiducialLocationModel at the given slice -1 index
+         * in the LocationAcquisitionModel and sets it
+         * @param inFocusSlice
+         * @param outFocusSlice 
+         */
+        @Override
+        public void setSlices(int inFocusSlice, int outFocusSlice) {
+            FiducialLocationModel inFLocModel = locAcq_.getFiducialLocationModel( inFocusSlice - 1 );
+            FiducialLocationModel outFLocModel = locAcq_.getFiducialLocationModel( outFocusSlice - 1 );
+            double[] inAvgs = calculateAverageZDepthAndStdDev( inFLocModel );
+            double[] outAvgs = calculateAverageZDepthAndStdDev(outFLocModel );
+            
+            outOfFocusThreshold_ = outAvgs[0]; 
+            outOfFocusThresholdUncertanty_ = outAvgs[1];
+            inFocusSelectedValue_ = inAvgs[0];
+            inFocusSelectedUncertainty_ = inAvgs[1];
+            
+            signalWaitingObject();
+            
+        }   
+        
+    }
+    
+     /**
+     * Selector Action To Be Passed to Focus Selection Window
+     */
+    public class SlopInAndOutSelector extends FocusThreadLockSelector {
+
+        private LocationAcquisitionModel locAcq_;
+        
+        SlopInAndOutSelector( SpuriousWakeGuardObject waitObject ) {
+            super( waitObject );
+        }
+        
+        /**
+         * Takes the last Frame before defocus and the first reentry into Focus
+         * @param lastInFocus
+         * @param firstReInFocus 
+         */
+        @Override
+        public void setSlices(int lastInFocus, int firstReInFocus) {
+            
+            //Should be positive but the difference is more important            
+            SLOP_TRAVEL = Math.abs( firstReInFocus - lastInFocus ) * BASE_STEP_UM;
+            try {
+                //Set the PropertyValue to avoid refreshes
+                setPropertyValue( SLOP_TRAVEL_UM_STR, Double.toString(SLOP_TRAVEL) );
+            } catch (MMException ex) {
+                Logger.getLogger(FiducialAutoFocus.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            signalWaitingObject();
+        }   
+        
     }
     
     /**
@@ -317,6 +455,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
       createProperty(THRESHOLD_UNCERTAINTY_STR, Double.toString(MAX_SCORE_UNCERTAINTY_THRESHOLD));
       //createProperty(MAX_ANTICIPATED_TRAVEL_STR, Double.toString(MAX_ANTICIPATED_TRAVEL));
       createProperty(SLOP_TRAVEL_UM_STR, Double.toString(SLOP_TRAVEL) );
+      createProperty( TEST_FIRST_SLOP_MOVE_STR, Boolean.toString(TEST_FIRST_SLOP_MOVE) );
       
       loadSettings();
     }
@@ -329,7 +468,8 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
             IS_SLOP_TRAVEL = Boolean.parseBoolean( getPropertyValue(SLOP_TRAVEL_STR) );
             MAX_SCORE_UNCERTAINTY_THRESHOLD = Double.parseDouble( getPropertyValue(THRESHOLD_UNCERTAINTY_STR) );
             //MAX_ANTICIPATED_TRAVEL = Double.parseDouble( getPropertyValue(MAX_ANTICIPATED_TRAVEL_STR) );
-
+            TEST_FIRST_SLOP_MOVE = Boolean.parseBoolean(getPropertyValue (TEST_FIRST_SLOP_MOVE_STR) );
+            
         } catch (NumberFormatException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -423,7 +563,95 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         } catch (Exception ex) {
             Logger.getLogger(FiducialAutoFocus.class.getName()).log(Level.SEVERE, null, ex);
         }
+        
+        //Queue the Fiducial In And Out Of Focus Things
+        //Register this to a Fiducial Focus Instance
+        /*if (fiducialFocusPlugin_ == null) {
+            setFiducialLocationAcquisitionModel();
+        }
+        
+        LocationAcquisitionModel locAcq = fiducialFocusPlugin_.getLocationAcqModel();
+        ReportingUtils.showMessage("Going into slop Selection");
+        SampleSlopSelection( locAcq );
+        ReportingUtils.showMessage("Should have done Slop seleciton");
+                
+        //Get Acquisition
+        SpuriousWakeGuardObject waitObject = new SpuriousWakeGuardObject();
+        LocationAcquisitionModel locAcqCopy =  locAcq.getCurrentLocationAcquisitionCopy();
+        //The Implementation Details of the LocationAcquisitionDisplayWindow that we are building
+        FiducialModelFocusEdgesSelection actionDock = new FiducialModelFocusEdgesSelection(new InOutFocusFiducialLocationSelector( locAcqCopy, waitObject ) );
+        LocationAcquisitionDisplayWindow window = LocationAcquisitionDisplayWindow.createLocationAcquisitionDisplayWindow(locAcqCopy );
+        window.dockAtBottom(actionDock);
+        window.setVisible(true);
+        
+        //Wait for The ActionDock to Either Close or be submitted
+        waitObject.doWait();*/
+        
+        
 
+    }
+    
+    public void SampleSlopSelection( LocationAcquisitionModel locAcqModel ) {
+        int maxOutofFocusOverShoot = 12;
+        int overShootMargin = 3;
+        int numOverShoot = 0;
+        
+        boolean posDir = true; //Start in the positive Direction
+        boolean stillfocus = true;
+        int dir = (posDir) ? 1:-1;
+        app_.getAcquisitionEngine2010().pause();
+        ReportingUtils.showMessage("Gonna Try this Stage thing");
+        while (stillfocus || numOverShoot < overShootMargin ) {
+            ReportingUtils.showMessage("Moving Positive");
+            //Move the stage Once
+            moveZStageRelative(BASE_STEP_UM*dir);
+            //Make ipCurrent_ equal the new Position Photo
+            snapSingleImage();
+            //Track This next FiducialLocationModel Until we can't find the Fiducial
+            try {
+                locAcqModel.pushNextFiducialLocationModel(ipCurrent_, true);
+                numOverShoot = 0;
+            } catch (NoFiducialException ex) {
+                stillfocus = false;
+                numOverShoot += 1;
+            }
+            
+        }
+        //Store the edge At which this occured
+        int edgeIndex = locAcqModel.getNumFiducialLocationModels() - 1;
+        
+        dir = (!posDir) ? 1:-1;
+        numOverShoot = 0;
+        //Wander Back in Until We Get Back in Focus
+        while( !stillfocus || numOverShoot < overShootMargin  ) {
+            ReportingUtils.showMessage("Moving Negative");
+            moveZStageRelative(BASE_STEP_UM*dir);
+            //Make ipCurrent_ equal the new Position Photo
+            snapSingleImage();
+            //Track This next FiducialLocationModel Until we can't find the Fiducial
+            try {
+                locAcqModel.pushNextFiducialLocationModel(ipCurrent_, true);
+                //This will only execute if a NoFiducialException is not thrown
+                stillfocus = true;
+                numOverShoot += 1;
+            } catch (NoFiducialException ex) {
+                stillfocus = false;
+                numOverShoot = 0;
+            }
+        } 
+        ReportingUtils.showMessage("Out of ReaDjust");
+        //Prompt User for their selection
+        SpuriousWakeGuardObject waitObject = new SpuriousWakeGuardObject();
+        LocationAcquisitionModel promptCopy = locAcqModel.getCurrentLocationAcquisitionCopy();
+        //The Implementation Details of the LocationAcquisitionDisplayWindow that we are building
+        FiducialModelFocusEdgesSelection actionDock = new FiducialModelFocusEdgesSelection( new SlopInAndOutSelector( waitObject ) );
+        LocationAcquisitionDisplayWindow window = LocationAcquisitionDisplayWindow.createLocationAcquisitionDisplayWindow(promptCopy );
+        window.dockAtBottom(actionDock);
+        window.setVisible(true);
+        
+        //Wait for The ActionDock to Either Close or be submitted
+        waitObject.doWait();
+        app_.getAcquisitionEngine2010().resume();
     }
     
     int i = 0;
@@ -483,13 +711,11 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         relativeYPixelTranslation_ = 0;
         int numStepsInDir = 0;
         int prevNumStepsInDir = 0;
-        //absYPixelTranslation_ = 0;
-        //absXPixelTranslation_ = 0;
         do {
             try {
                 //Currently just take a picture at core level and shoot it to ipCurrent_
                 snapSingleImage();
-                //Since We're storing the score in object space, comput it
+                //Since We're storing the score in object space, compute it
                 computeScore(ipCurrent_);
                 if( beginningStdDev_ == 0 ) {
                     beginningStdDev_ = currentRelativeZUncertainty_;
@@ -547,7 +773,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
                 boolean slopFocus = true;
                 if (dirSwitch) {
                     dirSwitch = false;
-                    int wanderOffset = ( backAndForthCount < 2 ) ? 0 : 1;
+                    int wanderOffset = ( backAndForthCount < 2 ) ? 0 : backAndForthCount - 1;
                     slopFocus = travelSlop(dir_,
                             (int) (SLOP_TRAVEL * wanderOffset / BASE_STEP_UM + prevNumStepsInDir));
                     prevNumStepsInDir = numStepsInDir;
@@ -776,11 +1002,14 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
                 currentRelativeZScore_ = avgs[0];
                 currentRelativeZUncertainty_ = avgs[1];
                 ij.IJ.log( "Current Z-Score: " + currentRelativeZScore_ + " and Uncertainty: " +currentRelativeZUncertainty_);
-                //In the case that we have a Z Score that is lower due to having started at a low focus plane
-                if( currentRelativeZScore_ < 0 ) {
+                //If seeking the best focusScore, make negative scores replace the previous BestFocusScore
+                if( seekBestFocusScore_ &&  currentRelativeZScore_ < 0 ) {
                     lastFLocModel_.setFocusPlaneToCurrentFiducials();
                     prevOutOfFocusZScore_ = prevOutOfFocusZScore_ - currentRelativeZScore_;
+                } else {
+                    
                 }
+                
                 return currentRelativeZScore_;
         }
  
@@ -820,7 +1049,8 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
      *  before a full defocus is assumed in that direction.
      * 
      * @param baseMult - Used to specify Direction by sign and increment by BASE_STEP_UM*baseMult (Cannot Be 0)
-     * @param offSet - The Multiplier number of BASE_STEP_UM for compensation in the slop direction first
+     * @param offSet - The Multiplier number of BASE_STEP_UM for compensation in the slop direction
+     *                 (i.e. if we take larger steps through slop)
      * @return <code>true</code> if the computedZScore is less than the previousOutofFocusScore
      *         <code>false</code> if there has been no improvement in focus through the slop region
      */
@@ -830,10 +1060,18 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         
         ij.IJ.log( "Travel Slop in Direction:" + baseMult + " and for number of Steps "+ (SLOP_TRAVEL/BASE_STEP_UM + offSet));
         
+        //Test Case, First Slop Movement Before Checking
+        if( TEST_FIRST_SLOP_MOVE ) {
+            moveZStageRelative( BASE_STEP_UM );
+        }
+        
         boolean noFid = false;
         double stepInc = 0;
         double prevZFocusWithUncertainty = 0;
         while( stepInc < SLOP_TRAVEL + offSet * BASE_STEP_UM ) {
+            //Compues Image Score at same location on first run but different
+            // time location.  This may result in a false positive. i.e. the 
+            // slop will think its deslopped and start focus evaluation again
             snapSingleImage();
             try {
                 computeScore( ipCurrent_ );
@@ -845,7 +1083,8 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
             //If We have achieved a better score, we should see increase on second iteration
             if( !noFid && currentRelativeZScore_ < prevOutOfFocusZScore_ + prevOutOfFocusZUncertainty_) { 
                 if( currentRelativeZScore_ < prevZFocusWithUncertainty + currentRelativeZUncertainty_ ) {
-                    //prevOutOfFocusZScore_ = currentRelativeZScore_;
+                    prevOutOfFocusZScore_ = currentRelativeZScore_;
+                    prevOutOfFocusZScore_ = currentRelativeZUncertainty_;
                     return true;
                 } else {
                     prevZFocusWithUncertainty = currentRelativeZScore_ + currentRelativeZUncertainty_;
@@ -881,7 +1120,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
             core_.setPosition(core_.getFocusDevice(), curDist_ + incrementUm );
             core_.waitForDevice(core_.getFocusDevice());
             delay_time(300);
-            String msg = "The relative Focus is: " + currentRelativeZScore_ + " compared to " + prevOutOfFocusZScore_ + prevOutOfFocusZUncertainty_;
+            String msg = "The relative Focus is: " + currentRelativeZScore_ + " compared to " + (prevOutOfFocusZScore_ + prevOutOfFocusZUncertainty_);
             msg += " moved by " + incrementUm;
             if( incrementUm < 0 ) {
                 globalPos_--;

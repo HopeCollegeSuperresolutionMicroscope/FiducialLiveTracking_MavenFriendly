@@ -13,6 +13,7 @@ import edu.hope.superresolution.processors.FiducialAreaProcessor;
 import edu.valelab.gaussianfit.utils.ReportingUtils;
 import ij.ImagePlus;
 import ij.gui.Roi;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EmptyStackException;

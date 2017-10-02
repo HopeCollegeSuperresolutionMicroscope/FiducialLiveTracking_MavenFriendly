@@ -6,13 +6,22 @@ package edu.hope.superresolution.livetrack;
  * and open the template in the editor.
  */
 
+import edu.hope.superresolution.autofocus.FiducialAutoFocus;
 import edu.hope.superresolution.models.LocationAcquisitionModel;
 import edu.hope.superresolution.views.TestImageWindowCombinations;
 import ij.ImagePlus;
+import ij.VirtualStack;
 import ij.process.ShortProcessor;
+import java.awt.image.ColorModel;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.micromanager.MMStudio;
 import org.micromanager.api.MMPlugin;
 import org.micromanager.api.ScriptInterface;
+import org.micromanager.utils.AutofocusManager;
+import org.micromanager.utils.ReportingUtils;
 
 /**
  *
@@ -60,10 +69,8 @@ public class LiveTracking implements org.micromanager.api.MMPlugin {
     }
 
     @Override
-    public void setApp(ScriptInterface si) {
-        //In the event that this autofocus is not installed via its own .jar, 
-        // set the fiducialAutoFocus as available to the plugin
-       /* FiducialAutoFocus fAutoFocus_ = null;
+    public void setApp(ScriptInterface si) {        
+        /*FiducialAutoFocus fAutoFocus_ = null;
         //ReportingUtils.showMessage(si.installAutofocusPlugin( FiducialAutoFocus.class.getName() ) );
         //Temporary AutoFocus Instance For Testing
         AutofocusManager afMgr = si.getAutofocusManager();
@@ -85,9 +92,8 @@ public class LiveTracking implements org.micromanager.api.MMPlugin {
         } catch (MMException ex) { 
            ReportingUtils.showError(ex);
            return;
-        } */
-        //fAutoFocus_ = (FiducialAutoFocus) afMgr.getDevice();
-        TestImageWindowCombinations tester = new TestImageWindowCombinations(new ImagePlus( "testcase", new ShortProcessor(400, 400) ));
+        } 
+        fAutoFocus_ = (FiducialAutoFocus) afMgr.getDevice();*/
         
         //Cue Up the LiveWindow For Selection of Fiducials and Focus Plane
         si.enableLiveMode(true);

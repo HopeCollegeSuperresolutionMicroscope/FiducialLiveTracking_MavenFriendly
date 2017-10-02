@@ -6,19 +6,18 @@
 package edu.hope.superresolution.ImageJmodifieds;
 
 import java.awt.Panel;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
 
 /**
- * This is a awt.Panel Element that Listens to the Event Buses of a PropertyNotifyingImagePlus
+ * This is an abstract awt.Panel Element that Listens to the Event Buses of a PropertyNotifyingImagePlus
  * and updates its associated classes with the data.  This is meant to be docked with the DockCapableImageWindow.
- *
+ *<p>
+ * Currently Just Abstract Categorization For Differentiation of IPropImPlusSelfSubscriber and a Panel Implementing it.
+ * 
  * @author Desig
  */
 public abstract class ImPlusListenerDockablePanel extends Panel implements IPropImPlusSelfSubscriber {
     
-    ImPlusListenerDockablePanel() {}
+    //Nullary Constructor
+    public ImPlusListenerDockablePanel() {}
     
 }
