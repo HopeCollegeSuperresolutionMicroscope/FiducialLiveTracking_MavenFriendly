@@ -3,17 +3,16 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package edu.hope.superresolution.fitters;
+package edu.hope.superresolution.fitSettingsTest;
 
 import edu.hope.superresolution.MMgaussianfitmods.datasubs.ExtendedGaussianInfo;
 import edu.hope.superresolution.fitprocesses.FitProcessContainer;
+import edu.hope.superresolution.fitters.FindLocalMaxima;
 import edu.hope.superresolution.genericstructures.FitThreadCallback;
 import edu.valelab.gaussianfit.data.SpotData;
 import ij.ImagePlus;
-import ij.gui.ImageWindow;
 import ij.gui.Roi;
 import ij.process.ImageProcessor;
-import ij.process.ShortProcessor;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import edu.hope.superresolution.genericstructures.BlockingQueueEndCondition;
@@ -40,35 +39,46 @@ public class GaussianFitThread extends GenericBaseGaussianFitThread {
     private static final int Y_IDX = 1;
     private static final int HALFBOX_IDX = 2;
   
-    private DataEnsureMode dataEnsureMode_ = DataEnsureMode.directionalCentering;
+    private edu.hope.superresolution.fitters.GenericBaseGaussianFitThread.DataEnsureMode dataEnsureMode_ = edu.hope.superresolution.fitters.GenericBaseGaussianFitThread.DataEnsureMode.directionalCentering;
     
     /**
-     * General Constructor - For Pass Throughs, see super class since they are 
-     * expected to be handled by the abstract class.
+     * General Constructor - Position String Limiting
      * 
      * @param ip - Pass Through of ImagePlus To Super
      * @param roi - Pass Through of Constraining Roi on ImagePlus
      * @param listCallback - Pass Through of Callback for calling Context
+     * @param extGaussInfo - Settings Object - ExtendedGaussianInfo
      * @param positionString - Pass Through of Micro-manager Position String
      * @param preFilterType - Pass Through of PreFilterType for Finding Points of Interest
      */
-    public GaussianFitThread( ImagePlus ip, Roi roi, FitThreadCallback<SpotData> listCallback, String positionString, 
+    public GaussianFitThread( ImagePlus ip, Roi roi, FitThreadCallback<SpotData> listCallback, ExtendedGaussianInfo extGaussInfo, String positionString, 
             FindLocalMaxima.FilterType preFilterType ) {
-        super( ip, roi, listCallback, positionString, preFilterType );
+        super( ip, roi, listCallback, extGaussInfo, positionString, preFilterType );
     }
 
     /**
-     * ExtendedGaussianInfo Copy Constructor
+     * Constructor -  NonPosition String
+     * <p>
+     * This does not attempt to use the Micro-manager specific nuance of a Z-Position String
+     * in an ImagePlus to limit selection.  
      * 
      * @param ip - Pass Through of ImagePlus To Super
      * @param roi - Pass Through of Constraining Roi on ImagePlus
      * @param listCallback - Pass Through of Callback for calling Context
-     * @param extGaussInfo - ExtendedGaussianInfo to copy to base
+     * @param extGaussInfo - Settings Object - ExtendedGaussianInfo
      * @param preFilterType - Pass Through of PreFilterType for Finding Points of Interest
      */
     public GaussianFitThread( ImagePlus ip, Roi roi, FitThreadCallback<SpotData> listCallback,
                                 ExtendedGaussianInfo extGaussInfo, FindLocalMaxima.FilterType preFilterType ) {
         super( ip, roi, listCallback, extGaussInfo, preFilterType );
+    }
+    
+    /**
+     * Copy Constructor - Protected for Use in copy() implementation
+     * @param source 
+     */
+    protected GaussianFitThread( GaussianFitThread source ) {
+        super( source );
     }
     
    /**
@@ -82,9 +92,8 @@ public class GaussianFitThread extends GenericBaseGaussianFitThread {
     * @see #super
     */
     @Override
-    protected FitStackThread createFitStackThreadInstance(BlockingQueue<SpotData> sourceList, BlockingQueueEndCondition<SpotData> endCondTest, List<SpotData> resultList, ImagePlus siPlus, int halfSize, int shape, FitProcessContainer.OptimizationModes fitMode) {
-        return new GaussianFitStackThreadTest(sourceList, endCondTest, resultList, 
-                 siPlus, halfSize, shape, fitMode );
+    protected FitStackThread createFitStackThreadInstance(BlockingQueue<SpotData> sourceList, BlockingQueueEndCondition<SpotData> endCondTest, List<SpotData> resultList ) {
+        return new GaussianFitStackThread(sourceList, endCondTest, resultList, getSettingsCopy() );
     }
 
     /** 
@@ -108,27 +117,37 @@ public class GaussianFitThread extends GenericBaseGaussianFitThread {
                                               int slice, int frame, int position, 
                                               int spotIdx, int x, int y ) {         
         
-        if (x > halfSize_ && x < ip.getWidth() - halfSize_
-                && y > halfSize_ && y < ip.getHeight() - halfSize_) {
+        //Extract Settings Info
+        ExtendedGaussianInfo sett = getSettingsRef();
+        int halfsize = sett.getHalfSize();
+        double baseLevel = sett.getBaseLevel();
+        int noiseTolerance = sett.getNoiseTolerance();
+        //Pulls from deprecated Source
+        //DataEnsureMode mode = sett.getDataEnsureMode();
+        
+        
+        
+        if (x > halfsize && x < ip.getWidth() - halfsize
+                && y > halfsize && y < ip.getHeight() - halfsize) {
             //Check to make sure the edge pixel average is greater than approx 1.5*sigma
             //It is assumed a user has already specified 2*sigma abbe Limit
-            int maxValue = ip.get(x, y) - (int) baseLevel_;
-            double compValue = .5 * maxValue + baseLevel_;
+            int maxValue = ip.get(x, y) - (int) baseLevel;
+            double compValue = .5 * maxValue + baseLevel;
             //Checks in case there is a problem with fitting parameters to avoid looping
-            if( compValue - baseLevel_ < noiseTolerance_ ) {
+            if( compValue - baseLevel < noiseTolerance ) {
                 //ij.IJ.log( "Removed Spot Compared to BaseLevel ");
                 return null;
             }
-            int halfBox = halfSize_;
+            int halfBox = halfsize;
             
             //In case there's no ensure mode
             int[] values =new int []{x, y, halfBox};
-            switch( getDataEnsureMode() ) {
+            switch( sett.getDataEnsureMode() ) {
                 case averageCentered:
-                    values = scaleSetToAverage( x, y, halfSize_, ip, compValue );
+                    values = scaleSetToAverage( x, y, halfsize, ip, compValue );
                     break;
                 case directionalCentering:
-                    values = scaleSettoDirectionalValues( x, y, halfSize_, ip, compValue );
+                    values = scaleSettoDirectionalValues( x, y, halfsize, ip, compValue );
                     break;
             }
             ImageProcessor sp = SpotData.getSpotProcessor(ip,
@@ -137,8 +156,8 @@ public class GaussianFitThread extends GenericBaseGaussianFitThread {
             if (sp != null) {
                 //Since the initial Fit Criteria is supposed to be based around a maximum
                 //Any shift in the x and y needs to be within the maximum box that was found
-                if( Math.abs( values[X_IDX] - x ) < halfSize_ 
-                        && Math.abs( values[Y_IDX] - y ) < halfSize_ ) {
+                if( Math.abs( values[X_IDX] - x ) < halfsize 
+                        && Math.abs( values[Y_IDX] - y ) < halfsize ) {
                     //Such a Dumb way to lump getters and setters with the setData thing
                     return new SpotData(sp, channel, slice, frame,
                             position, spotIdx, values[X_IDX], values[Y_IDX]);
@@ -155,6 +174,16 @@ public class GaussianFitThread extends GenericBaseGaussianFitThread {
             ij.IJ.log("Rejected For Being Too Close");
         }
         return null;
+    }
+    
+    /**
+     * Produces a Copy of the ImageRegionFitThread
+     * 
+     * @return 
+     */
+    @Override
+    public ImageRegionFitThread copy() {
+        return new GaussianFitThread( this );
     }
     
     /**
@@ -206,7 +235,7 @@ public class GaussianFitThread extends GenericBaseGaussianFitThread {
             int val;
             int lx = 0, rx = 0, ty = 0, by = 0;
             //int max = (int) Math.ceil( widthMax_ / pixelSize_ );
-            int noiseAmplitude = getNoiseTolerance();
+            int noiseAmplitude = getSettingsRef().getNoiseTolerance();
             do {
                 if (!leftLow) {
                     val = iProc.getPixel(x - (halfBox + lx), y);

@@ -61,6 +61,8 @@ public class FiducialArea extends Observable {
     //Defocus Tracking members
     private double refSigmaNaut_ = 0;  //Gaussian SigmaNaut from referenced in focus plane (this is 0 unless being tracked)
     private double refSigmaNautUncertainty_ = 0; //Uncertainty in the SigmaNaut (stdDev in Average)
+    //Migratory variables for SigmaNautReferences
+    private BoundedSpotData zRefSpot_ = null; //Gaussian Spot from referenced in focus plane (this is null unless being tracked)
     private double avgSigma_;  //The AverageSigma of all found Spots
     private double avgSigmaUncertainty_;  //The AvgUncertainty of the Sigmas
     private double relativeDz_ = 0;  //dz Relative to a reference plane and sigmaNaut
@@ -115,6 +117,10 @@ public class FiducialArea extends Observable {
                                  ? baseFArea.refSigmaNaut_ : baseFArea.selectedSpot_.getWidth()/4;
         refSigmaNautUncertainty_ = (baseFArea.refSigmaNautUncertainty_ != 0) 
                                         ? baseFArea.refSigmaNautUncertainty_ : baseFArea.selectedSpot_.getSigma();
+        
+        //This is a simpler Implementation but has the null risk
+        //zRefSpot_ = (baseFArea.zRefSpot_ != null ) 
+          //                       ? baseFArea.zRefSpot_ : baseFArea.selectedSpot_;
         
         //Use This as a reference for spot selection
         selectedSpot_ = baseFArea.selectedSpot_;
@@ -277,26 +283,9 @@ public class FiducialArea extends Observable {
     //Takes a reference to a sychronized ArrayList of SpotData, fills and sorts sortedPossibleFiducials_
     //The selectedSpot_ is updated to the maximum spot and hasChanged_ is updated
     private int populateBoundedSpotList( List<SpotData> list ) {
-        
                 
         //Calculate the avgSigma and remove any outliers beyond 3 sigma
-        SpotData spot;
-        
-        //Since We Assume Fiducials Are Diffraction Limited Emitters,
-        //  Apply A Limit To Any Widths That Are Found
-        //  Assuming that Defocus Occurs (2 * Minimum SpotWidth Accounts for Uniform Defocus and Double Spots
-        /*int idx = 0;
-        if (!list.isEmpty()) {
-            idx = 1;
-            Collections.sort(list, minWidthComparator_);
-            int listSize = list.size();
-            double maxWidth = list.get(0).getWidth() * 2;
-            while (idx < listSize && list.get(idx).getWidth() <= maxWidth) {
-                idx++;
-            }
-            ij.IJ.log("The Number of Over 2*Min Removed is:" + (listSize - idx) + " and Number Left is: " + idx);
-        }
-        ij.IJ.log( "Number of Actual Spots is: " + idx );*/
+        SpotData spot;        
         
         //Add remaining Spots to sortedPossible Fiducials
         sortedPossibleFiducials_.clear();
@@ -456,6 +445,9 @@ public class FiducialArea extends Observable {
                     double dSigma = selectedSpot_.getWidth() / 4 - refSigmaNaut_;
                     double refIdx = fiducialAreaProcessor_.getMicroscopeModel().getObjectiveRefractiveIdx();
                     double numAp = fiducialAreaProcessor_.getMicroscopeModel().getNumericalAperture();
+                    //iZEstimator.ZPassBack result = zEstimator_.calculateZEstimate( (zRefSpot_ == null) ? selectedSpot_:zRefSpot, selectedSpot_ );
+                    //relativeDz_ = result.
+                    //relativeDzUncertainty_ = result.
                     relativeDz_ = dSigma * refIdx / numAp ;
                     relativeDzUncertainty_ = Math.sqrt(Math.pow(refSigmaNautUncertainty_, 2)
                             + Math.pow(selectedSpot_.getSigma(), 2)) * refIdx / numAp;

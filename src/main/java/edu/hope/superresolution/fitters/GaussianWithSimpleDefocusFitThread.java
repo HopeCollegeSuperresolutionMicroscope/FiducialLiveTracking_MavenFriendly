@@ -7,7 +7,6 @@ package edu.hope.superresolution.fitters;
 
 import edu.hope.superresolution.MMgaussianfitmods.datasubs.ExtendedGaussianInfo;
 import edu.hope.superresolution.fitprocesses.FitProcessContainer;
-import edu.hope.superresolution.genericstructures.BlockingQueueEndConditionTest;
 import edu.hope.superresolution.genericstructures.FitThreadCallback;
 import edu.valelab.gaussianfit.data.GaussianInfo;
 import edu.valelab.gaussianfit.data.SpotData;
@@ -16,6 +15,7 @@ import ij.gui.Roi;
 import ij.process.ImageProcessor;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import edu.hope.superresolution.genericstructures.BlockingQueueEndCondition;
 
 /**
  *  Class to Perform a Gaussian Fit With Simple Defocus Term (Zernike[2,0]) to an
@@ -74,7 +74,7 @@ public class GaussianWithSimpleDefocusFitThread extends GenericBaseGaussianFitTh
     * @see GaussianWithDefocusFitStackThread
     */
     @Override
-    protected FitStackThread createFitStackThreadInstance(BlockingQueue<SpotData> sourceList, BlockingQueueEndConditionTest<SpotData> endCondTest, List<SpotData> resultList, ImagePlus siPlus, int halfSize, int shape, FitProcessContainer.OptimizationModes fitMode) {
+    protected FitStackThread createFitStackThreadInstance(BlockingQueue<SpotData> sourceList, BlockingQueueEndCondition<SpotData> endCondTest, List<SpotData> resultList, ImagePlus siPlus, int halfSize, int shape, FitProcessContainer.OptimizationModes fitMode) {
         return new GaussianWithDefocusFitStackThread(sourceList, endCondTest, resultList, 
                  siPlus, halfSize, shape, fitMode );
     }

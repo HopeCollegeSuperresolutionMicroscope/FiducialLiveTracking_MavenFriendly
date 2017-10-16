@@ -20,4 +20,9 @@ public abstract class ImPlusListenerDockablePanel extends Panel implements IProp
     //Nullary Constructor
     public ImPlusListenerDockablePanel() {}
     
+    /**
+     * Called to Cleanup Any Pending Dockable Information, if the window is closed
+     */
+    abstract public void onWindowClosing();
+    
 }

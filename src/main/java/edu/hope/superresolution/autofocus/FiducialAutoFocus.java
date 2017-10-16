@@ -111,71 +111,12 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
     public ScoreMethods scoreMethod_ = ScoreMethods.avgRelativeZ;
     public enum ScoreMethods {
         avgRelativeZ, minRelativeZWithUncertainty
-    }
-    
-    public class SpuriousWakeGuardObject {
-        
-        private boolean waitGuard_ = false;
-        private final Object syncObj_ = new Object();
-        
-        public void doWait() {
-            synchronized (syncObj_) {
-                waitGuard_ = true;
-                while (waitGuard_) {
-                    try {
-                        super.wait(1000);
-                    } catch (InterruptedException ex) {
-                        Logger.getLogger(FiducialAutoFocus.class.getName()).log(Level.SEVERE, null, ex);
-                        Thread.interrupted();
-                    }
-                }
-            }
-        }
-        
-
-        public void doNotify() {
-            synchronized (syncObj_) {
-                waitGuard_ = false;
-                super.notify();
-            }
-        }
-        
-    }
-    
-    /**
-     * Abstract Implementation for Selector Actions that need to stall this focus Thread.
-     * 
-     */
-    abstract public class FocusThreadLockSelector implements TwoSliceSelector {
-        
-        private final SpuriousWakeGuardObject waitObject_;
-        
-        /**
-         * General Constructor - assumes waitObject is a only waiting on a single thread
-         * <p>
-         * The thread passing this object, may call waitObject.wait() and can be assured
-         * that the selectorAction will be called.  
-         * 
-         * @param waitObject 
-         */
-        public FocusThreadLockSelector( SpuriousWakeGuardObject waitObject ) {
-            waitObject_ = waitObject;
-        }
-        
-        /**
-         * Call in subclasses to release the wait
-         */
-        protected void signalWaitingObject() {
-                
-                waitObject_.doNotify();
-            
-        }
-    }
+    }   
     
     /**
      * Selector Action To Be Passed to Focus Selection Window
      */
-    public class InOutFocusFiducialLocationSelector extends FocusThreadLockSelector {
+    public class InOutFocusFiducialLocationSelector extends FocusThreadLockSelector implements TwoSliceSelector {
 
         private LocationAcquisitionModel locAcq_;
         
@@ -211,7 +152,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
      /**
      * Selector Action To Be Passed to Focus Selection Window
      */
-    public class SlopInAndOutSelector extends FocusThreadLockSelector {
+    public class SlopInAndOutSelector extends FocusThreadLockSelector implements TwoSliceSelector {
 
         private LocationAcquisitionModel locAcq_;
         
@@ -566,29 +507,55 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         
         //Queue the Fiducial In And Out Of Focus Things
         //Register this to a Fiducial Focus Instance
-        /*if (fiducialFocusPlugin_ == null) {
+        if (fiducialFocusPlugin_ == null) {
             setFiducialLocationAcquisitionModel();
         }
+
+        //Prompt For Focus Selection
+        sampleFocusSelection( fiducialFocusPlugin_.getLocationAcqModel() );
+
+    }
+    
+    /**
+     * Retrieves a Sample selection across the score capable zone of images.
+     * Due to an expectation of slop in focusing, the sample is acquired out to a 
+     * No Fiducial Event.  If this event occurs first, the assumption is that the direction
+     * is in slop and continues until the next noFiducial Event
+     * 
+     */
+    public void sampleFocusSelection( LocationAcquisitionModel locAcqModel ) {
         
-        LocationAcquisitionModel locAcq = fiducialFocusPlugin_.getLocationAcqModel();
-        ReportingUtils.showMessage("Going into slop Selection");
-        SampleSlopSelection( locAcq );
-        ReportingUtils.showMessage("Should have done Slop seleciton");
-                
-        //Get Acquisition
+        int numSteps = 0;
+        boolean posDir = true;
+        boolean stillfocus = true;
+        int dir = (posDir) ? 1:-1;
+        app_.getAcquisitionEngine2010().pause();
+        while( stillfocus ) {
+            //Move the stage Once
+            moveZStageRelative(BASE_STEP_UM*dir);
+            //Make ipCurrent_ equal the new Position Photo
+            snapSingleImage();
+            //Track This next FiducialLocationModel Until we can't find the Fiducial
+            try {
+                locAcqModel.pushNextFiducialLocationModel(ipCurrent_, true);
+                numSteps += 1; //Only Increase numSteps once we've achieved selection
+            } catch (NoFiducialException ex) {
+                if( numSteps != 0 ) {
+                    stillfocus = false;
+                }
+            }
+
+        }
+        
         SpuriousWakeGuardObject waitObject = new SpuriousWakeGuardObject();
-        LocationAcquisitionModel locAcqCopy =  locAcq.getCurrentLocationAcquisitionCopy();
+        LocationAcquisitionModel locAcqCopy =  locAcqModel.getCurrentLocationAcquisitionCopy();
         //The Implementation Details of the LocationAcquisitionDisplayWindow that we are building
         FiducialModelFocusEdgesSelection actionDock = new FiducialModelFocusEdgesSelection(new InOutFocusFiducialLocationSelector( locAcqCopy, waitObject ) );
         LocationAcquisitionDisplayWindow window = LocationAcquisitionDisplayWindow.createLocationAcquisitionDisplayWindow(locAcqCopy );
         window.dockAtBottom(actionDock);
         window.setVisible(true);
-        
-        //Wait for The ActionDock to Either Close or be submitted
-        waitObject.doWait();*/
-        
-        
-
+        //Wait on Submit or close of window
+        waitObject.doWait();
     }
     
     public void SampleSlopSelection( LocationAcquisitionModel locAcqModel ) {

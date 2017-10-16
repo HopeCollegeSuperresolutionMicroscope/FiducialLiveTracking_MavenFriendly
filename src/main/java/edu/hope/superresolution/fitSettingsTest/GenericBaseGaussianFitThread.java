@@ -3,18 +3,18 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package edu.hope.superresolution.fitters;
+package edu.hope.superresolution.fitSettingsTest;
 
 import edu.hope.superresolution.MMgaussianfitmods.datasubs.ExtendedGaussianInfo;
-import edu.hope.superresolution.fitprocesses.FitProcessContainer;
+import edu.hope.superresolution.fitters.FindLocalMaxima;
+import edu.hope.superresolution.genericstructures.BlockingQueueEndCondition;
 import edu.hope.superresolution.genericstructures.FitThreadCallback;
-import edu.valelab.gaussianfit.data.GaussianInfo;
+import edu.hope.superresolution.genericstructures.iSettingsObject;
 import edu.valelab.gaussianfit.data.SpotData;
 import ij.ImagePlus;
 import ij.gui.Roi;
 import ij.process.ImageProcessor;
 import java.awt.Polygon;
-import edu.hope.superresolution.genericstructures.BlockingQueueEndCondition;
 
 /**
  *  Extension of ImageRegionFitThread that provides a common base for a Gaussian 
@@ -32,7 +32,7 @@ import edu.hope.superresolution.genericstructures.BlockingQueueEndCondition;
  * @see edu.hope.superresolution.fitters.FitStackThread
  * 
  */
-public abstract class GenericBaseGaussianFitThread extends ImageRegionFitThread {
+public abstract class GenericBaseGaussianFitThread extends ImageRegionFitThread<ExtendedGaussianInfo, SpotData> {
     
     /**
      * Enumerated Value for different modes used to ensure that a selected spot
@@ -42,6 +42,29 @@ public abstract class GenericBaseGaussianFitThread extends ImageRegionFitThread 
     public enum DataEnsureMode{
         none, averageCentered, directionalCentering
     }
+    
+    /**
+     * Expected Common BlockingQueue EndCondition (static) for Gaussian Info.
+     * <p>
+     * That is to say, for data that encapsulates its data in a SpotData Element or its subclass.
+     * <p>
+     * Poison key has -1 frame
+     */
+    public static class GaussianBlockingQueueEndCondition implements BlockingQueueEndCondition<SpotData> {
+
+        @Override
+        public boolean isEndCondition(SpotData queueObj) {
+            return queueObj.getFrame() == -1;
+        }
+
+        @Override
+        public SpotData generateEndCondition() {
+            return new SpotData(null, -1, 1, -1, -1, -1, -1, -1);
+        }
+
+    }
+    
+    private final GaussianBlockingQueueEndCondition endCond = new GaussianBlockingQueueEndCondition();
     
     //Fit Process Specific Variables
     FindLocalMaxima.FilterType preFilterType_;
@@ -56,9 +79,9 @@ public abstract class GenericBaseGaussianFitThread extends ImageRegionFitThread 
      * @param positionString - Pass Through of Micro-manager Position String
      * @param preFilterType - PreFilterType for Finding Points of Interest
      */
-    public GenericBaseGaussianFitThread( ImagePlus ip, Roi roi, FitThreadCallback<SpotData> listCallback, String positionString, 
+    public GenericBaseGaussianFitThread( ImagePlus ip, Roi roi, FitThreadCallback<SpotData> listCallback, ExtendedGaussianInfo extGaussInfo, String positionString, 
             FindLocalMaxima.FilterType preFilterType ) {
-        super( ip, roi, listCallback, positionString );
+        super( ip, roi, listCallback, new GaussianBlockingQueueEndCondition(), extGaussInfo, positionString );
         preFilterType_ = preFilterType;
     }
 
@@ -72,10 +95,20 @@ public abstract class GenericBaseGaussianFitThread extends ImageRegionFitThread 
      * @param preFilterType - PreFilterType for Finding Points of Interest
      */
     public GenericBaseGaussianFitThread( ImagePlus ip, Roi roi, FitThreadCallback<SpotData> listCallback,
-                                ExtendedGaussianInfo extGaussInfo, FindLocalMaxima.FilterType preFilterType ) {
-        super( ip, roi, listCallback, extGaussInfo );
+                                 ExtendedGaussianInfo extGaussInfo, FindLocalMaxima.FilterType preFilterType ) {
+        super( ip, roi, listCallback, new GaussianBlockingQueueEndCondition(), extGaussInfo );
         preFilterType_ = preFilterType;
     }    
+    
+    /**
+     * Copy Constructor - Protected for use with Extending Class implementation of copy()
+     * 
+     * @param source 
+     */
+    protected GenericBaseGaussianFitThread( GenericBaseGaussianFitThread source ) {
+        super(source);
+        preFilterType_ = source.preFilterType_;
+    }
     
     /**
      *  Sets the preFilterType for analysis
@@ -124,8 +157,8 @@ public abstract class GenericBaseGaussianFitThread extends ImageRegionFitThread 
      * And above a given Threshold Value for the current ImageProcessor.
      * <p>
      * <pre>
-     *  Threshold Value is part of GaussianInfo super class (manipulated by setNoiseTolerance())
-     *  HalfSize Value is part of GaussianInfo super class (manipulated by setSpotImageAreaHalfSize())
+     * Uses the ExtendedGaussianInfo Object that is expected to be stored in the super
+     * class SettingsDependentObjectBasic.
      *  preFilterType is manipulated by setPreFiltertype()
      * </pre>
      * 
@@ -138,7 +171,15 @@ public abstract class GenericBaseGaussianFitThread extends ImageRegionFitThread 
      */
     @Override
     protected Polygon discoverPointsOfInterest(ImageProcessor currentImageProcessor) {
-        return FindLocalMaxima.FindMax( currentImageProcessor, halfSize_, getSNR(), noiseTolerance_, getIntensityThreshold(),
+        
+        //Thread safe due to run loop settings protection
+        ExtendedGaussianInfo sett = getSettingsRef();
+        int halfSize = sett.getHalfSize();
+        double snr = sett.getSNR();
+        int noiseTolerance = sett.getNoiseTolerance();
+        int intThreshold = sett.getIntensityThreshold();
+        
+        return FindLocalMaxima.FindMax( currentImageProcessor, halfSize, snr, noiseTolerance, intThreshold,
                                 preFilterType_);
     }
 

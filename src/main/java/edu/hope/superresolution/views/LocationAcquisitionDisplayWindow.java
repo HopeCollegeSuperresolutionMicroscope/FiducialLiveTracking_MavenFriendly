@@ -36,7 +36,6 @@ public class LocationAcquisitionDisplayWindow extends UnderDockCapableStackImage
         
         pack();
         setVisible(true);
-
         
     }
     

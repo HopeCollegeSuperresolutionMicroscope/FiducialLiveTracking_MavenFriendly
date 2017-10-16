@@ -27,9 +27,9 @@ import org.apache.commons.math.optimization.general.NonLinearConjugateGradientOp
 
 /**
  *  Adapted Legacy-Code to Interface (edu.valelab.gaussianfit.algorithm.GaussianFit)
- 
- Implements an assumed GaussianFit Process for use in recycling with various bounded
- image areas that are passed to its dofit() process.  This Class Produces more
+ *
+ * Implements an assumed GaussianFit Process for use in recycling with various bounded
+ * image areas that are passed to its dofit() process.  This Class Produces more
  * shape fit types than would be advisable in a single implementation, but is not pertinent to change.
  * <p>
  * <pre>
@@ -368,7 +368,7 @@ public class GaussianFit implements FitProcessContainer {
     
     @Override
     public int getNumParams() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+       return mode_ + 4;
     }
 
     @Override

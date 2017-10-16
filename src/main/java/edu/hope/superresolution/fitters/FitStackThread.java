@@ -1,7 +1,6 @@
 package edu.hope.superresolution.fitters;
 
 import edu.hope.superresolution.fitprocesses.FitProcessContainer;
-import edu.hope.superresolution.genericstructures.BlockingQueueEndConditionTest;
 import edu.valelab.gaussianfit.DataCollectionForm;
 import edu.valelab.gaussianfit.algorithm.GaussianFit;
 import edu.valelab.gaussianfit.data.GaussianInfo;
@@ -10,6 +9,7 @@ import edu.valelab.gaussianfit.fitting.ZCalibrator;
 import ij.ImagePlus;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import edu.hope.superresolution.genericstructures.BlockingQueueEndCondition;
 
 /*
  * To change this license header, choose License Headers in Project Properties.
@@ -20,7 +20,7 @@ import java.util.concurrent.BlockingQueue;
 /**
  * 
  * This is a more General Implementation of The GaussianFitStackThread from edu.valelab.gaussianfit. 
- * Its implementation allows for the implementation of the previously tested GassuainFit Object from 
+ * Its implementation allows for the use of the previously tested GaussianFit Object from 
  * edu.valelab.gaussianfit.algorithm.  The need for better defocusing parameters
  * and, in general, updated parameters would suggest a basic FitStackThread class
  * that invokes a particular implementation of FitProcess.
@@ -44,7 +44,7 @@ public abstract class FitStackThread extends GaussianInfo implements Runnable {
 
    private Thread t_;
    private boolean stopNow_ = false;
-   private BlockingQueueEndConditionTest endCondTest_;
+   private BlockingQueueEndCondition endCondTest_;
    //protected member for FitProcessContainer Access
    protected FitProcessContainer fitProcess_;
    
@@ -65,7 +65,7 @@ public abstract class FitStackThread extends GaussianInfo implements Runnable {
     * @param fitMode     The fitMode we initially want to set for the fitProcess
     */
    public FitStackThread(BlockingQueue<SpotData> sourceList, 
-           BlockingQueueEndConditionTest<SpotData> endCondTest,
+           BlockingQueueEndCondition<SpotData> endCondTest,
            List<SpotData> resultList, ImagePlus siPlus, int halfSize,
            int shape, FitProcessContainer fitProcess,
            FitProcessContainer.OptimizationModes fitMode) {
@@ -95,6 +95,9 @@ public abstract class FitStackThread extends GaussianInfo implements Runnable {
 
    /**
     * Create and Start the Thread
+    * 
+    * @deprecated This method allows for rampant growth of threads and will be completely removed
+    *             in favor of using ThreadPools in the future.
     */
    public void init() {
       stopNow_ = false;
@@ -112,6 +115,9 @@ public abstract class FitStackThread extends GaussianInfo implements Runnable {
    /**
     *  Join the current Thread that was created
     * @throws InterruptedException 
+    * 
+    * @deprecated This method allows for rampant growth of threads and will be completely removed
+    *             in favor of using ThreadPools in the future.
     */
    public void join() throws InterruptedException {
       if (t_ != null)

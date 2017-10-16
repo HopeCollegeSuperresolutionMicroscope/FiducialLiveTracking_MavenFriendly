@@ -11,6 +11,7 @@ import edu.hope.superresolution.Utils.CopyUtils;
 import edu.hope.superresolution.exceptions.NoFiducialException;
 import edu.hope.superresolution.genericstructures.FiducialTravelDiff2D;
 import edu.hope.superresolution.genericstructures.TravelMatchCase;
+import edu.hope.superresolution.genericstructures.iZEstimator;
 import edu.hope.superresolution.imagetrack.FiducialMoveFinder;
 import edu.hope.superresolution.processors.FiducialAreaProcessor;
 import ij.ImagePlus;
@@ -544,5 +545,16 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
      */
     public double getAvgAbsoluteYPixelTranslation() {
         return avgAbsoluteYPixelTranslation_;
+    }
+    
+    /**
+     * Sets the zEstimator that is used to calculate the Zdepths all each selected fiducial in the 
+     * Fiducial Area.
+     * 
+     * @param zEstimator 
+     */
+    public void setZEstimator( iZEstimator zEstimator ) {
+    
+    
     }
 }

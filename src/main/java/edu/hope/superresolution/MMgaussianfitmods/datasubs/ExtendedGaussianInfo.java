@@ -7,6 +7,7 @@ package edu.hope.superresolution.MMgaussianfitmods.datasubs;
 
 import edu.hope.superresolution.fitters.FindLocalMaxima;
 import edu.hope.superresolution.fitters.GenericBaseGaussianFitThread;
+import edu.hope.superresolution.genericstructures.iSettingsObject;
 import edu.valelab.gaussianfit.data.SpotData;
 import ij.ImagePlus;
 import ij.process.ImageProcessor;
@@ -25,7 +26,7 @@ import java.util.concurrent.BlockingQueue;
  * 
  * @author Microscope
  */
-public class ExtendedGaussianInfo {
+public class ExtendedGaussianInfo implements iSettingsObject {
 
     /**
      * Remnant Constants from Gaussian Info
@@ -256,9 +257,17 @@ public class ExtendedGaussianInfo {
     public void setMaxIterations(int maxIter) {
         maxIterations_ = maxIter;
     }
+    
+    public int getMaxIterations() {
+        return maxIterations_;
+    }
 
     public void setBoxSize(int boxSize) {
         halfSize_ = boxSize / 2;
+    }
+    
+    public int getHalfSize() {
+        return halfSize_;
     }
 
     public void setShape(int shape) {
@@ -323,5 +332,14 @@ public class ExtendedGaussianInfo {
     
     public int getMaxTrackTravel( ) {
         return maxTrackTravel_;
+    }
+
+    @Override
+    public iSettingsObject copy(iSettingsObject source) {
+        if( !(source instanceof ExtendedGaussianInfo) )  {
+            throw new IllegalArgumentException( "Mismath: " + this.getClass().getName() + " attempted to copy on " + source.getClass().getName() );
+        }
+        
+        return new ExtendedGaussianInfo( (ExtendedGaussianInfo) source );
     }
 }

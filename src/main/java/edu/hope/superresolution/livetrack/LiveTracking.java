@@ -15,6 +15,8 @@ import ij.process.ShortProcessor;
 import java.awt.image.ColorModel;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.micromanager.MMStudio;
@@ -132,7 +134,6 @@ public class LiveTracking implements org.micromanager.api.MMPlugin {
     public String getCopyright() {
         return "me";
     }
-
-
+    
     
 }

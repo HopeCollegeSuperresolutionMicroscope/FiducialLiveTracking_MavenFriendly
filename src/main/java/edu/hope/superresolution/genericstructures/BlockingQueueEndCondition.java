@@ -7,10 +7,10 @@ package edu.hope.superresolution.genericstructures;
 
 /**
  *  Generic Interface meant to be Implemented for a given Blocking Queue.  This 
- *   interface allows for complex testing of any blocking queue object to be 
- *   encapsulated so that any using class, may switch BlockingQueues and only expect
- *   a new BlockingQueueEndConditionTest instance.
- * <p>
+   interface allows for complex testing of any blocking queue object to be 
+   encapsulated so that any using class, may switch BlockingQueues and only expect
+   a new BlockingQueueEndCondition instance.
+ <p>
  *  This Class is used for construction of a super FitStackThread Class, so that 
  *  extensions have a standard (and consistent) way of stopping when operating on 
  *  BlockingQueue.
@@ -23,7 +23,7 @@ package edu.hope.superresolution.genericstructures;
  * 
  * @author Justin Hanselman
  */
-public interface BlockingQueueEndConditionTest<QueueDataType> {
+public interface BlockingQueueEndCondition<QueueDataType> {
     
     /**
      *  Boolean Condition that is called for a given Queue Object. The pertinent
@@ -38,5 +38,12 @@ public interface BlockingQueueEndConditionTest<QueueDataType> {
      * @see edu.hope.superresolution.fitters.FitStackThread#run
      */
     public boolean isEndCondition( QueueDataType queueObj );
+    
+    /**
+     * Generate the End Condition that is tested For in isEndCondition
+     * 
+     * @return 
+     */
+    public QueueDataType generateEndCondition();
     
 }

@@ -6,13 +6,13 @@
 package edu.hope.superresolution.fitters;
 
 import edu.hope.superresolution.fitprocesses.FitProcessContainer;
-import edu.hope.superresolution.genericstructures.BlockingQueueEndConditionTest;
 import edu.valelab.gaussianfit.data.SpotData;
 import ij.ImagePlus;
 import ij.process.ImageProcessor;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import org.micromanager.utils.ReportingUtils;
+import edu.hope.superresolution.genericstructures.BlockingQueueEndCondition;
 
 /**
  *
@@ -25,7 +25,7 @@ public class GaussianWithDefocusFitStackThread extends FitStackThread {
                                 "GaussianWithDefocusFitStackThread.aDefocusRelative";
     
     public GaussianWithDefocusFitStackThread(BlockingQueue<SpotData> sourceList,
-                                                BlockingQueueEndConditionTest<SpotData> endCondTest,
+                                                BlockingQueueEndCondition<SpotData> endCondTest,
                                                 List<SpotData> resultList, ImagePlus siPlus,
                                                 int halfSize, int shape, FitProcessContainer.OptimizationModes fitMode) {
         super(sourceList, endCondTest, resultList, siPlus, halfSize, shape, null, fitMode);

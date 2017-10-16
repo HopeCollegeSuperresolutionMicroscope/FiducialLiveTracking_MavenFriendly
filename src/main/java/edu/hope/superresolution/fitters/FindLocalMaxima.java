@@ -3,7 +3,7 @@
  * Neubeck and Van Gool. Efficient non-maximum suppression. 
  * Pattern Recognition (2006) vol. 3 pp. 850-855
  *
- * Jonas Ries brought this to my attention and send me C code implementing one of the
+ * Jonas Ries brought this to my attention and sent me C code implementing one of the
  * described algorithms
  *
  */
@@ -19,6 +19,9 @@ import java.awt.Rectangle;
 
 
 /**
+ * publicClass Exposing The Methods.  Slight Alterations to Nico-Stuurman's interpretation of 
+ * the class, with a more liberal selection metric for allowing noise values in.
+ * 
  *
  * @author nico
  */
@@ -35,6 +38,12 @@ public class FindLocalMaxima {
     * Static utility function to find local maxima in an Image    
     * <p>
     *  Alias for FindMax( ImageProcessor, int, int, FilterType )
+    * <p>
+    * Note:  Where this function may fail is in the identification of maxima for gradually sloped
+    *        Intensities.  The noiseFilter used, simply checks the next closest pixel values to see if they deviate
+    *        more than the snr*noiseMax value from the Max.  Please keep this in mind if that is an
+    *        expectation.  A simple fix may be to simply reduce the noiseMax symbolically if 
+    *        that is an expectation.
     * 
     * @param iPlus - ImagePlus object in which to look for local maxima
     * @param n - minimum distance to other local maximum (2n is the search data centered around the the point)
@@ -47,11 +56,17 @@ public class FindLocalMaxima {
    }
 
    /**
-    * Static utility function to find local maxima in an Image
+    * Static utility function to find local maxima in an Image that are not simply the result of noise
+    * <p>
+    * Note:  Where this function may fail is in the identification of maxima for gradually sloped
+    *        Intensities.  The noiseFilter used, simply checks the next closest pixel values to see if they deviate
+    *        more than the snr*noiseMax value from the Max.  Please keep this in mind if that is an
+    *        expectation.  A simple fix may be to simply reduce the noiseMax symbolically if 
+    *        that is an expectation.
     * 
     * @param iProc - ImageProcessor object in which to look for local maxima
     * @param n - minimum distance to other local maximum (2n is the search data centered around the the point)
-    * @param snr - The minimum Signal To Noise Ratio Accepatble (to be multiplied by noiseMax and offset from threshold)
+    * @param snr - The minimum Signal To Noise Ratio Acceptable (to be multiplied by noiseMax)
     * @param noiseMax- the maximum anticipated value of the noise from mean
     * @param threshold - value below which a maximum will be rejected
     * @param filterType - Prefilter the image.  Either none or Gaussian1_5
@@ -143,25 +158,33 @@ public class FindLocalMaxima {
             }
             
             //Check to See if the Value is above the overall SNR permitted
-            if( !stop && (threshold+ snr * noiseMax == 0 || 
-                    (iProc.getPixel(mi, mj)  > threshold/* + snr * noiseMax*/))) {
+            if( !stop && ( iProc.getPixel(mi, mj)  > threshold )) {
                 maxima.addPoint(mi, mj);
             }
          }
       }
       
-      return maxima;
+      //Filters out any Noisy Points
+      return noiseFilter( iProc, maxima, (int) snr * noiseMax );
    }
 
-   // Filters local maxima list using the ImageJ findMaxima Threshold algorithm
-   public static Polygon noiseFilter(ImageProcessor iProc, Polygon inputPoints, int threshold)
+   /**
+    * Filters a Set of Local Maxima Points in an ImageProcessor to see if they are above the
+    * assumed amplitude for the noise. 
+    * 
+    * @param iProc - ImageProcesor with Pixel Data Where Points were found
+    * @param localMaxPoints - List of localMaximums that were discovered without Noise Detection
+    * @param noiseThreshold - The allowed amplitude for expected Noise
+    * @return 
+    */
+   public static Polygon noiseFilter(ImageProcessor iProc, Polygon localMaxPoints, int noiseThreshold)
    {
       Polygon outputPoints = new Polygon();
 
-      for (int i=0; i < inputPoints.npoints; i++) {
-         int x = inputPoints.xpoints[i];
-         int y = inputPoints.ypoints[i];
-         int value = iProc.getPixel(x, y) - threshold;
+      for (int i=0; i < localMaxPoints.npoints; i++) {
+         int x = localMaxPoints.xpoints[i];
+         int y = localMaxPoints.ypoints[i];
+         int value = iProc.getPixel(x, y) - noiseThreshold;
          if (    value > iProc.getPixel(x-1, y-1) ||
                  value > iProc.getPixel(x-1, y)  ||
                  value > iProc.getPixel(x-1, y+1)||

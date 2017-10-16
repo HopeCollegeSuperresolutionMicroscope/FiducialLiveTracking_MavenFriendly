@@ -10,6 +10,7 @@ import edu.hope.superresolution.MMgaussianfitmods.datasubs.ExtendedGaussianInfo;
 import edu.hope.superresolution.autofocus.FiducialAutoFocus;
 import edu.hope.superresolution.exceptions.NoFiducialException;
 import edu.hope.superresolution.genericstructures.VirtualDirectoryManager;
+import edu.hope.superresolution.genericstructures.iZEstimator;
 import edu.hope.superresolution.livetrack.LiveTracking;
 import edu.hope.superresolution.views.FiducialSelectForm;
 import edu.hope.superresolution.views.ImageViewController;
@@ -595,6 +596,29 @@ public class LocationAcquisitionModel {
      */
     public static VirtualDirectoryManager getAcquisitionSaveDirectory() {
         return acqSaveDirectory_;
+    }
+    
+    
+    /**
+     * Sets The zEstimator Used throughout the stack.  This applies the zEstimator to all
+     * previous Fiducial Models in the Acquisition and to the current model. 
+     * <p>
+     * The iZEstimator interface is meant to provide a means for expanding Z Estimates,
+     * without requiring recompiling of this class.  More Complex methods may require addition of 
+     * a new method though or writing specific code in this method to upcast.
+     * 
+     * @param zEstimator - the new Estimator to be used.
+     */
+    public void setAcquisitionZEstimator( iZEstimator zEstimator ) {
+        //Store locally as well?
+        
+        Iterator<FiducialLocationModel> it = fLocationAcquisitions_.iterator();
+        while( it.hasNext() ) {
+            FiducialLocationModel fmodel = it.next();
+            fmodel.setZEstimator( zEstimator );
+        }
+        //some type of update?        
+        
     }
     
 }

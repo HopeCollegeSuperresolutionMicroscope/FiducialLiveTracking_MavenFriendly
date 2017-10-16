@@ -3,21 +3,20 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package edu.hope.superresolution.fitters;
+package edu.hope.superresolution.fitSettingsTest;
 
 import edu.hope.superresolution.MMgaussianfitmods.datasubs.BoundedSpotData;
+import edu.hope.superresolution.MMgaussianfitmods.datasubs.ExtendedGaussianInfo;
 import edu.hope.superresolution.Utils.AdditionalGaussianUtils;
 import edu.hope.superresolution.Utils.ThompsonGaussianEstimationUtil;
 import edu.hope.superresolution.fitprocesses.FitProcessContainer;
+import edu.hope.superresolution.fitters.GaussianFit;
 import edu.valelab.gaussianfit.DataCollectionForm;
 import edu.valelab.gaussianfit.data.SpotData;
 import edu.valelab.gaussianfit.fitting.ZCalibrator;
 import edu.valelab.gaussianfit.utils.GaussianUtils;
 import ij.ImagePlus;
-import ij.gui.ImageWindow;
-import ij.gui.Overlay;
 import ij.process.ImageProcessor;
-import ij.process.ShortProcessor;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import org.micromanager.utils.ReportingUtils;
@@ -27,16 +26,9 @@ import edu.hope.superresolution.genericstructures.BlockingQueueEndCondition;
  *
  * @author Microscope
  */
-public class GaussianFitStackThreadTest extends FitStackThread {
-
-    //Public Keys for SpotData
-    public static final String NUM_PHOTON_UNCERTAINTY = "TEST THIS";//GaussianFitStackThread.class.getName() + ".NumPhotonUncertainty";
-    public static final String INTENSITY_MAX_UNCERTAINTY = "TEST THIS TOO"; //GaussianFitStackThread.class.getName() + ".IntensityMaxUncertainty";
-    public static final String INTENSITY_MAX = "TEST THIS THREE";//GaussianFitStackThread.class.getName() + ".IntensityMax";
+public class GaussianFitStackThread extends FitStackThread<ExtendedGaussianInfo, SpotData> {
     
-    private final double cPCF = photonConversionFactor_ / gain_;
-    private final ZCalibrator zc = DataCollectionForm.zc_;
-    //private final double sigmaMin_;  //This is Equal to Abbe Limit/2 (or half-Size search Area/2) (approx Gaussian Sigma)
+    private FitProcessContainer fitProcess_;  //The Container with various Fit Settings
     
     /**
      *  Fit Thread to Perform a Gaussian Fit to a Preselected Spot.  It is Assumed that the 
@@ -46,20 +38,21 @@ public class GaussianFitStackThreadTest extends FitStackThread {
      * @param sourceList - The BlockingQueue of SpotData to pull preliminary unfit Spots from
      * @param endCondTest - A BlockingQueueEndCondition object with method for identifying the endCondition of the BlockingQueue
      * @param resultList - The synchronized List to append FittedSpots to
-     * @param siPlus - The imagePlus associated with the fitting
-     * @param resolveLimit - The limit in which Gaussians are considered discernable (This was expected to be the Abbe Limit originally), provides a minimum fitWidth
-     * @param shape - Whether the fit is meant to be circular, oval in x and y, or elliptical
-     * @param fitMode - The mode used to establish the fit
+     * @param settings - The settings Object that this Thread will operate off of
      */
-    public GaussianFitStackThreadTest(BlockingQueue<SpotData> sourceList, 
+    public GaussianFitStackThread(BlockingQueue<SpotData> sourceList, 
                                 BlockingQueueEndCondition<SpotData> endCondTest,
-                                List<SpotData> resultList, ImagePlus siPlus, 
-                                int resolveLimit, int shape,
-                                FitProcessContainer.OptimizationModes fitMode) {
-        super(sourceList, endCondTest, resultList, siPlus, resolveLimit, shape, null, fitMode);
+                                List<SpotData> resultList,
+                                ExtendedGaussianInfo settings ) {
+        super(sourceList, endCondTest, resultList, null, settings );
         //Later Initialization of FitProcessContainer for sake of readability
-        setFitProcess( new GaussianFit( shape, fitMode, baseLevel_ ) );
-        //sigmaMin_ = resolveLimit / 2;
+        //Get the Settings Object For reference 
+        ExtendedGaussianInfo sett = getSettingsRef();
+        int shape = sett.getShape();
+        //New Structure means this can be a part of each settings object, but for now we will keep it here
+        FitProcessContainer.OptimizationModes fitMode = FitProcessContainer.OptimizationModes.getOptimizationMode(sett.getFitMode());
+        double baseLevel = sett.getBaseLevel();
+        fitProcess_ = new GaussianFit( shape, fitMode, baseLevel );
         
     }
     
@@ -72,9 +65,21 @@ public class GaussianFitStackThreadTest extends FitStackThread {
             int iWidth = ip.getWidth();
             int iHeight = ip.getHeight();
             int halfWidth = iWidth/2;
-            double[] paramsOut = getFitProcess().dofit(ip, maxIterations_);
+            //Get Settings Object
+            ExtendedGaussianInfo sett = getSettingsRef();
+            //Instantiate all variables now, in the event that settingsLocks are changed in the future
+            //These should be thread-safe given locking implementation in FitStackThread
+            int maxIterations = sett.getMaxIterations();
+            double pixelSize = sett.getPixelSize();
+            double baseLevel = sett.getBaseLevel();
+            int noiseTolerance = sett.getNoiseTolerance();
+            double widthMin = sett.getSigmaMin(), widthMax = sett.getSigmaMax();
+            double cPCF = sett.getPhotonConversionFactor() / sett.getGain();
+            
+            //Perform the Fit on the ImageProcessor For the Spot
+            double[] paramsOut = fitProcess_.dofit(ip, maxIterations);
             // Note that the copy constructor will not copy pixel data, so we loose those when spot goes out of scope
-            BoundedSpotData spotData = new BoundedSpotData( spot, getPixelSize() );
+            BoundedSpotData spotData = new BoundedSpotData( spot, pixelSize );
             double sx = 0;
             double sy = 0;
             double a = 1;
@@ -91,31 +96,24 @@ public class GaussianFitStackThreadTest extends FitStackThread {
                        * (2 * Math.PI * paramsOut[GaussianFit.S] * paramsOut[GaussianFit.S]);
                //ij.IJ.log("Int Raw is: " + paramsOut[GaussianFit.INT]);
                
-               double s = Math.abs(paramsOut[GaussianFit.S]) * pixelSize_;
+               double s = Math.abs(paramsOut[GaussianFit.S]) * pixelSize;
 
-               double xMax = (paramsOut[GaussianFit.XC] - halfWidth + spot.getX()) * pixelSize_;
-               double yMax = (paramsOut[GaussianFit.YC] - halfWidth + spot.getY()) * pixelSize_;
+               double xMax = (paramsOut[GaussianFit.XC] - halfWidth + spot.getX()) * pixelSize;
+               double yMax = (paramsOut[GaussianFit.YC] - halfWidth + spot.getY()) * pixelSize;
                // express background in photons after base level correction
                // From Thompson Paper, We Propagate Noise + any dilineation from BaseLevel in the fit
-               double bgr = cPCF * Math.sqrt( Math.pow( Math.pow(paramsOut[GaussianFit.BGR], 2) - baseLevel_, 2) + Math.pow( noiseTolerance_, 2 ));
+               double bgr = cPCF * Math.sqrt( Math.pow( Math.pow(paramsOut[GaussianFit.BGR], 2) - baseLevel, 2) + Math.pow( noiseTolerance, 2 ));
                // calculate error using formula from Thompson et al (2002)
                // (dx)2 = (s*s + (a*a/12)) / N + (8*pi*s*s*s*s * b*b) / (a*a*N*N)
                //ij.IJ.log("Sigma is: " + s + "\nBackground is: " + bgr + "\nNumPhotons: " + N + "\n PixelSize: " + pixelSize_);
-               double uncertaintyPos = ThompsonGaussianEstimationUtil.calculateLateralUncertainty( s, bgr, N, pixelSize_ );
+               double uncertaintyPos = ThompsonGaussianEstimationUtil.calculateLateralUncertainty( s, bgr, N, pixelSize );
                //ij.IJ.log( "Lateral Uncertainty is: " + uncertaintyPos);
-               double uncertaintyNumPhotons = ThompsonGaussianEstimationUtil.calculatePhotonUncertainty( N, s, bgr, pixelSize_ );
+               double uncertaintyNumPhotons = ThompsonGaussianEstimationUtil.calculatePhotonUncertainty( N, s, bgr, pixelSize );
                
                if (paramsOut.length >= 6) {
-                  sx = paramsOut[GaussianFit.S1] * pixelSize_;
-                  sy = paramsOut[GaussianFit.S2] * pixelSize_;
+                  sx = paramsOut[GaussianFit.S1] * pixelSize;
+                  sy = paramsOut[GaussianFit.S2] * pixelSize;
                   a = sx / sy;
-                  
-                  /*double z = 0.0;              
-               
-                  if (zc.hasFitFunctions()) {
-                     z = zc.getZ(2 * sx, 2 * sy);
-                     spotData.setZCenter(z);
-                  }*/
                   
                }
 
@@ -131,7 +129,7 @@ public class GaussianFitStackThreadTest extends FitStackThread {
                spotData.setNumPhotonUncertainty( uncertaintyNumPhotons );
                spotData.setData(N, bgr, xMax, yMax, 0.0, width, a, theta, uncertaintyPos);
                //ij.IJ.log( "Spot Fit: " + spotData.getX() + ", " + spotData.getY() +  " and width = " + spotData.getWidth() + " uncertainty = " + spotData.getSigma() );
-               if( width > widthMin_ && width < widthMax_ && uncertaintyPos < width) {                       
+               if( width > widthMin && width < widthMax && uncertaintyPos < width) {                       
                   return spotData;
                }
 
@@ -157,21 +155,24 @@ public class GaussianFitStackThreadTest extends FitStackThread {
        int yHeight = siProc.getHeight();
        double rmsResidual = 0.0;
        
-       if (mode_ == 1) {
+       ExtendedGaussianInfo sett = getSettingsRef();
+       int mode = sett.getFitMode();
+       
+       if (mode == 1) {
           for (int i = 0; i < xWidth; i++) {
              for (int j = 0; j < yHeight; j++) {
                 rmsResidual += GaussianUtils.sqr(AdditionalGaussianUtils.gaussianSquareBGR(finalParams, i, j)
                                                            - siProc.get(i, j) );
              }
           }
-       } else if (mode_ == 2) {
+       } else if (mode == 2) {
           for (int i = 0; i < xWidth; i++) {
              for (int j = 0; j < yHeight; j++) {
                 rmsResidual += GaussianUtils.sqr(AdditionalGaussianUtils.gaussian2DXYSquareBGR(finalParams, i, j) 
                                                             - siProc.get(i, j));
              }
           }
-       } else if (mode_ == 3) {
+       } else if (mode == 3) {
           for (int i = 0; i < xWidth; i++) {
              for (int j = 0; j < yHeight; j++) {
                 rmsResidual += GaussianUtils.sqr(AdditionalGaussianUtils.gaussian2DEllipsSquareBGR(finalParams, i, j)

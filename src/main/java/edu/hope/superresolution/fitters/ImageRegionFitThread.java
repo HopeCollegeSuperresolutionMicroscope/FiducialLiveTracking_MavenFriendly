@@ -7,7 +7,6 @@ package edu.hope.superresolution.fitters;
 
 import edu.hope.superresolution.MMgaussianfitmods.datasubs.ExtendedGaussianInfo;
 import edu.hope.superresolution.fitprocesses.FitProcessContainer;
-import edu.hope.superresolution.genericstructures.BlockingQueueEndConditionTest;
 import edu.hope.superresolution.genericstructures.FitThreadCallback;
 import edu.valelab.gaussianfit.data.GaussianInfo;
 import edu.valelab.gaussianfit.data.SpotData;
@@ -24,15 +23,28 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.ReentrantLock;
+import edu.hope.superresolution.genericstructures.BlockingQueueEndCondition;
 
 /**
  * 
- * Abstract Super Class That Provides a Process for fitting An ImagePlus and an Roi.
- * This class takes care of initiation functions, join functions, and the basic flow
- * of processing each image.  In the case of an ImagePlus that is an ImageStack, a given Roi
- * will be applied to all Images In the Stack.
+ * Abstract Super Class That Provides a Process for fitting An ImagePlus against a set of Rois.
+ * <p>
+ * This class may either be instantiated via its constructor on the correct ImagePlus and Rois
+ * that are composed to form the correct search area, or it may be lazy initialized or changed
+ * via the setImagePlus and setRois()/addRoi method.  Note, these lazy initialization methods
+ * all return booleans as to whether the value was set.  A no set condition occurs if 
+ * a Runnable is currently running, because it is outside of the purpose of this class to
+ * change the parameters of a fit mid-fit.  In the event of reuse, the isRunning() class
+ * will return the state of the Runnable, and all modifications should be done afterward.
+ * <p>
+ * Additionally, extending classes must implement a createWithNewImagePlus( ) method.
+ * This method is intended to copy all relevant attributes of the current FitThread, 
+ * while attaching a new ImagePlus. This is meant to be the copy constructor of all 
+ * subclasses in this sense.
  * <p>
  * <pre>
  * Basic Run Procedure:
@@ -46,11 +58,15 @@ import java.util.concurrent.locks.ReentrantLock;
  *     5. Wait For FitStackThreads to Finish
  *     6. Call The ListFinished Callback to use ResultingListInfo in Calling Context
  * </pre> 
+ * <p>
+ * Deprecated Use Case:This class takes care of initiation functions, join functions, and the basic flow
+ * of processing each image.  In the case of an ImagePlus that is an ImageStack, a given Roi
+ * will be applied to all Images In the Stack.
  * 
  *
  * @author Microscope
  */
-abstract public class ImageRegionFitThreadTest extends ExtendedGaussianInfo implements Runnable {
+abstract public class ImageRegionFitThread extends ExtendedGaussianInfo implements Runnable {
     
    /**General Lock to allow for modification of any settings to be used 
     *   while thread is running.  This takes care of the general case for pre-run
@@ -64,6 +80,7 @@ abstract public class ImageRegionFitThreadTest extends ExtendedGaussianInfo impl
     private ImagePlus ip_;
     private boolean running_ = false;
     private FitStackThread[] stackFitThreads_;
+    private List<Roi> rois_ = new ArrayList<Roi>();
     private Roi roi_;
     
     //Callback for calling Context
@@ -74,8 +91,8 @@ abstract public class ImageRegionFitThreadTest extends ExtendedGaussianInfo impl
      * 
      *  Assumes SpotData Object will have a frame number of -1 as endKey
      */
-    private final BlockingQueueEndConditionTest<SpotData> endCondTest_ =
-                    new BlockingQueueEndConditionTest<SpotData>(){
+    private final BlockingQueueEndCondition<SpotData> endCondTest_ =
+                    new BlockingQueueEndCondition<SpotData>(){
                         @Override
                         public boolean isEndCondition(SpotData queueObj) {
                             return queueObj.getFrame() == -1;
@@ -93,7 +110,7 @@ abstract public class ImageRegionFitThreadTest extends ExtendedGaussianInfo impl
      *                       upon Completion of Fitting
      * @param positionString Micro-manager Image Sequence Labeling String For Evaluation
      */
-    public ImageRegionFitThreadTest( ImagePlus ip, Roi roi, FitThreadCallback<SpotData> listCallback, String positionString ) {
+    public ImageRegionFitThread( ImagePlus ip, Roi roi, FitThreadCallback<SpotData> listCallback, String positionString ) {
         ip_ = ip;
         positionString_ = positionString;
         roi_ = roi;
@@ -110,7 +127,7 @@ abstract public class ImageRegionFitThreadTest extends ExtendedGaussianInfo impl
      *                      upon Completion of Fitting
      * @param extGaussInfo ExtendedGaussianInfo Object to Copy
      */
-    public ImageRegionFitThreadTest( ImagePlus ip, Roi roi, FitThreadCallback<SpotData> listCallback, ExtendedGaussianInfo extGaussInfo ) {
+    public ImageRegionFitThread( ImagePlus ip, Roi roi, FitThreadCallback<SpotData> listCallback, ExtendedGaussianInfo extGaussInfo ) {
         super( extGaussInfo );
         ip_ = ip;
         roi_ = roi;
@@ -118,7 +135,8 @@ abstract public class ImageRegionFitThreadTest extends ExtendedGaussianInfo impl
     }
     
     /**
-     * Rets the Roi for use in the analysis
+     * Sets the Roi for use in the analysis. This will 
+     * override the previous Rois.
      * 
      * @param roi The Roi to search in the Image, must have actual height, width, and be an Area
      * @return <code>true</code> if the Roi was set 
@@ -136,10 +154,11 @@ abstract public class ImageRegionFitThreadTest extends ExtendedGaussianInfo impl
 
         modifyLock_.lock();
         try {
-            if (!roiIsValid( roi_ )) {
+            if (!roiIsValid( roi )) {
                 throw new IllegalArgumentException("Roi Does Not Meet Requirements for " + this.getClass().getName());
             }
-            roi_ = roi;
+            rois_.clear(); //Reset the List
+            rois_.add(roi);
         } catch (IllegalArgumentException ex) {
             throw ex;
         } finally {
@@ -149,30 +168,151 @@ abstract public class ImageRegionFitThreadTest extends ExtendedGaussianInfo impl
     }
     
     /**
-     * Sets the z positionString for use in analysis (MManager Implementation)
+     * Overload - Sets the Region of Interest in the Image to a selection of Rois.  This will 
+     * override the previous Rois if successful.
+     * <p>
+     * This is an All or Nothing Operation.  Meaning, if an Roi does not match the specified 
+     * anticipated Roi type from the parameter set, the old set will remain unchanged.
+     * It is recommended that a programmer make use of the roiIsValid() method
+     * to filter their set before passing it in.  Otherwise, catching the exception and 
+     * removing the offending will do so as well, but only for the Roi that triggered the throw.
      * 
-     * @param positionString - string to indicate the ImageSequence Position
-     * @return <code>true</code> if the positionString was set 
+     * @param rois The Rois to search in the Image, must have actual height, width, and be an Area
+     * @return <code>true</code> if the Roi was set 
      *         or <code>false</code> if called while process was running
+     * @throws IllegalArgumentException If Roi is an invalid version, this runtime exception is thrown
+     *                                  it is up to the caller to catch and exit or simply continue due to
+     *                                  the overarching nature of Roi class.
      */
-    @Override
-    public boolean setPositionString( String positionString ) {
-        
-        if (isRunning()) {
+    final public boolean setRoi( Roi[] rois ) throws IllegalArgumentException {
+        if( isRunning() ) {
             return false;
         }
         
+        //Prevents starting a run or other modifications until the logic is done
         modifyLock_.lock();
-        try{
-            positionString_ = positionString;
+        List< Roi > copyList = new ArrayList();
+        try {
+            for( int i =0; i < rois.length; i++ ) {
+                Roi roi = rois[i];
+                if (!roiIsValid( roi )) {
+                    throw new IllegalArgumentException("Roi Does Not Meet Requirements for " + this.getClass().getName());
+                }
+                copyList.add(roi);
+            }
+            //set the copyList to the new Rois if there wasn't a problem
+            rois_ = copyList;
+        } catch (IllegalArgumentException ex ) {
+            //rethrow the exception
+            throw ex;
+        } finally {
+            modifyLock_.unlock();
+        }
+        
+        return true;
+        
+    }
+    
+     /**
+     * Adds the Roi to the list of Regions of interest for fitting in the analysis. 
+     * Unlike SetRoi() methods this will be appended to the current areas. 
+     * 
+     * @param roi The Roi to search in the Image, must have actual height, width, and be an Area
+     * @return <code>true</code> if the Roi was set 
+     *         or <code>false</code> if called while process was running
+     * @throws IllegalArgumentException If Roi is an invalid version, this runtime exception is thrown
+     *                                  it is up to the caller to catch and exit or simply continue due to
+     *                                  the overarching nature of Roi class.
+     * 
+     * @see ij.gui.Roi
+     */
+    final public boolean addRoi( Roi roi ) throws IllegalArgumentException {
+        if (isRunning()) {
+            return false;
+        }
+
+        modifyLock_.lock();
+        try {
+            if (!roiIsValid( roi )) {
+                throw new IllegalArgumentException("Roi Does Not Meet Requirements for " + this.getClass().getName());
+            }
+            rois_.add(roi);
+        } catch (IllegalArgumentException ex) {
+            throw ex;
         } finally {
             modifyLock_.unlock();
         }
         return true;
     }
+    
+    /**
+     * Overload - Adds the Region of Interests in the Image to the current selection of Rois.  
+     * Unlike SetRoi() methods this will be appended to the current areas.
+     * <p>
+     * This is an All or Nothing Operation.  Meaning, if an Roi does not match the specified 
+     * anticipated Roi type, all previous Rois that were added from the parameter set will
+     * be removed as well.  It is recommended that a programmer make use of the roiIsValid() method
+     * to filter their set before passing it in.  Otherwise, catching the exception and 
+     * removing the offending Roi will do so as well, but only for the Roi that triggered the throw.
+     * There is no guarantee about other Rois after the offending Roi.
+     * 
+     * @param rois The Rois to search in the Image, must meet an extending Classes roiIsValid() requirements
+     * @return <code>true</code> if the Roi was set 
+     *         or <code>false</code> if called while process was running
+     * @throws IllegalArgumentException If Roi is an invalid version, this runtime exception is thrown
+     *                                  it is up to the caller to catch and exit or simply continue due to
+     *                                  the overarching nature of Roi class.
+     */
+    final public boolean addRoi( Roi[] rois ) throws IllegalArgumentException {
+        if( isRunning() ) {
+            return false;
+        }
         
+        //Prevents starting a run or other modifications until the logic is done
+        modifyLock_.lock();
+        List< Roi > copyList = new ArrayList();
+        try {
+            for( int i =0; i < rois.length; i++ ) {
+                Roi roi = rois[i];
+                if (!roiIsValid( roi )) {
+                    throw new IllegalArgumentException("Roi Does Not Meet Requirements for " + this.getClass().getName());
+                }
+                copyList.add(roi);
+            }
+            //set the copyList to the new Rois if there wasn't a problem
+            rois_.addAll(copyList);
+        } catch (IllegalArgumentException ex ) {
+            //rethrow the exception
+            throw ex;
+        } finally {
+            modifyLock_.unlock();
+        }
+        
+        return true;
+        
+    }
+    
+    /**
+     * Resets the Rois for the fit to none.  This means that the entire ImageArea is processed
+     * if the Runnable is run this way.  
+     * @return 
+     */
+    final public boolean resetRois( ) {
+        if( isRunning() ) {
+            return false;
+        }
+        
+        modifyLock_.lock();
+        try{ 
+            rois_.clear();
+        } finally {
+            modifyLock_.unlock();
+        }
+        
+        return true;
+        
+    }
 
-        
     /**
      * Get the resultList_ of fitted Spots
      * 
@@ -215,53 +355,14 @@ abstract public class ImageRegionFitThreadTest extends ExtendedGaussianInfo impl
         }
         return true;
     }
-       
-    /**
-     *  Sets the halfSize of the Spot Image Area.  This means that when SpotData
-     *  is created around a Point of Interest to evaluate, the ImageProcessor will be
-     *  cropped and copied for analysis (+/- halfSize in square x and y)
-     * <p>
-     * Note: Only changes halfWidth if Thread is not currently running
-     * 
-     * @param halfSize The halfSize in Pixels of the box (assumed square) to either side 
-     *                  of any Points of interest.
-     * @return <code>true</code> if the imagePlus was set 
-     *         or <code>false</code> if called while process was running
-     * 
-     * @see #discoverPointsOfInterest(ij.process.ImageProcessor) 
-     */
-    final public boolean setSpotImageAreaHalfSize( int halfSize ) {
-        if( isRunning() ) {
-            return false;
-        }
-        
-        modifyLock_.lock();
-        try {
-            halfSize_ = halfSize;
-        } finally {
-            modifyLock_.unlock();
-        }
-        return true;
-    }
-
-    /**
-     *  Gets The HalfSize of the Spot Image Area around a Point of Interest.  This 
-     *  was set through constructor or <code>setSpotImageAreaHalfSize(int)</code>
-     * <p>
-     * Note: This is an attempt at encapsulating the protected super member of halfSize_.
-     * For Readability, use this Getter in all extending subClasses.
-     * 
-     * @return The halfSize in Pixels of the box (assumed square) to either side 
-     *          of any Points of interest.
-     * 
-     * @see #setSpotImageAreaHalfSize(int) 
-     */
-    final public int getSpotImageHalfSize( ) {
-        return halfSize_;
-    }
     
-    /*
-    *   Self-Implementing Values
+   /**
+    * Self-implememting initiation of Thread and starts the run process
+    * 
+    * @return <code>true</code> if it began running, or <code>false</code> if it was already running
+    * 
+    * @deprecated This method allows for rampant growth of threads and will be completely removed
+    *             in favor of using ThreadPools in the future.
     */
    public boolean init() {
 
@@ -274,15 +375,31 @@ abstract public class ImageRegionFitThreadTest extends ExtendedGaussianInfo impl
       return true;
    }
    
-   //Synchronized running access Threads
+   /**
+    * Synchronized access to see if a thread is running
+    * 
+    * @return 
+    */
    public synchronized boolean isRunning() {
        return running_;
    }
    
+   /**
+    * Synchronized setRunning variable
+    * @param enable 
+    */
    private synchronized void setRunning( boolean enable ) {
        running_ = enable;
    }
    
+   /**
+    * Self-implememting join on self-stored Thread
+    * 
+    * @return <code>true</code> if it began running, or <code>false</code> if it was already running
+    * 
+    * @deprecated This method allows for rampant growth of threads and will be completely removed
+    *             in favor of using ThreadPools in the future.
+    */
    public boolean join(long millis) throws InterruptedException {
        if (!isRunning()) {
            return false;
@@ -291,6 +408,13 @@ abstract public class ImageRegionFitThreadTest extends ExtendedGaussianInfo impl
       return true;
    } 
 
+   /**
+    * Stops stackFitThreads that are used to process the potentially detected Spots.
+    * Additionally, ends the Self-Implemented Thread.
+    * 
+    * @deprecated This method allows for rampant growth of threads and will be completely removed
+    *             in favor of using ThreadPools in the future.
+    */
    public void stop() {
       if (stackFitThreads_ != null) {
          for (FitStackThread stackFitThread : stackFitThreads_) {
@@ -439,7 +563,17 @@ abstract public class ImageRegionFitThreadTest extends ExtendedGaussianInfo impl
      */
     abstract public boolean roiIsValid( Roi roi );
     
-    //Initializes Threads to Search Through All Local Maximums found in the the method Thread
+    /**
+     * Initializes Threads to Search Through All Local Maximums found in the the method Thread
+     * <p>
+     * This could do with a large overhaul for ThreadPools as well.
+     * 
+     * @param siPlus
+     * @param position
+     * @param nrThreads
+     * @param originalRoi
+     * @return 
+     */
     @SuppressWarnings("unchecked")
    private int analyzeImagePlus(ImagePlus siPlus, int position, int nrThreads, Roi originalRoi ) {
 
@@ -528,7 +662,7 @@ abstract public class ImageRegionFitThreadTest extends ExtendedGaussianInfo impl
                   }
                       
                   //Sort Points Spatially Left to Right, Top to Bottom
-                  Arrays.sort(sC, new ImageRegionFitThreadTest.SpotSortComparator());
+                  Arrays.sort(sC, new ImageRegionFitThread.SpotSortComparator());
                 
                   //Set up SpotData basic structures for FitStackThreads
                   SpotData spot;
@@ -591,7 +725,7 @@ abstract public class ImageRegionFitThreadTest extends ExtendedGaussianInfo impl
     * <p>
   Since this was built off of modifying Localization Microscopy, settings are
   transferred from GaussianInfo already.  This means GaussianInfo settings should
-  be changed for an instance of ImageRegionFitThreadTest if the desire to change GaussianInfo
+  be changed for an instance of ImageRegionFitThread if the desire to change GaussianInfo
   for the return FitStackThread is supposed to be realized.  Any extra initialization should be taken 
   care of in this function (such as extra constructor parameters or validation).
     * 
@@ -608,7 +742,7 @@ abstract public class ImageRegionFitThreadTest extends ExtendedGaussianInfo impl
     * @see FitStackThread
     */
    abstract protected FitStackThread createFitStackThreadInstance( final BlockingQueue<SpotData> sourceList, 
-                                                                    final BlockingQueueEndConditionTest<SpotData> endCondTest,
+                                                                    final BlockingQueueEndCondition<SpotData> endCondTest,
                                                                     final List<SpotData> resultList, ImagePlus siPlus, int halfSize,
                                                                     int shape, FitProcessContainer.OptimizationModes fitMode );
    
