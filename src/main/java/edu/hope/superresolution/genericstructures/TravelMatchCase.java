@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- *   Structure Used to Characterized A Travel Match
+ *   Structure Used to Characterize A Travel Match
      spotMatches_ contains the FiducialTravelDiff2D's that matched properties
      realMatchRatio_  the percentage( out of 1 ) of matches to the Fiducial Area Set
      maxSpotMatches_ the max number (denominator for percentage calculation)

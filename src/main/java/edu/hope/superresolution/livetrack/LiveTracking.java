@@ -21,6 +21,7 @@ import org.micromanager.MMStudio;
 import org.micromanager.api.MMPlugin;
 import org.micromanager.api.ScriptInterface;
 import org.micromanager.utils.AutofocusManager;
+import org.micromanager.utils.MMException;
 import org.micromanager.utils.ReportingUtils;
 
 /**
@@ -69,7 +70,7 @@ public class LiveTracking implements org.micromanager.api.MMPlugin {
     }
 
     @Override
-    public void setApp(ScriptInterface si) {        
+    public void setApp(final ScriptInterface si) {        
         /*FiducialAutoFocus fAutoFocus_ = null;
         //ReportingUtils.showMessage(si.installAutofocusPlugin( FiducialAutoFocus.class.getName() ) );
         //Temporary AutoFocus Instance For Testing
@@ -100,7 +101,35 @@ public class LiveTracking implements org.micromanager.api.MMPlugin {
         
         //Should make this a Factory for other Image Processors
         
-        locAcqModel_ = new LocationAcquisitionModel( si.getSnapLiveWin(), si, this );
+        //Create An Action Listener for Clicking on the track Button
+        //Should be variable based on a new parameter for the sake of other acquisition types
+        LocationAcquisitionModel.AcquisitionSubmitAction trackAction = new LocationAcquisitionModel.AcquisitionSubmitAction() {
+            
+            @Override
+            public void submitResponse( ) {
+                //Sets the autofocus to FiducialAutofocus
+                AutofocusManager afMgr = si.getAutofocusManager();
+                afMgr.setAFPluginClassName(FiducialAutoFocus.class.getName());
+                try {
+                    afMgr.refresh();
+                } catch (MMException ex) {
+                    org.micromanager.utils.ReportingUtils.showError(ex);
+                }
+                //Notify User Of New Autofocus Options
+                org.micromanager.utils.ReportingUtils.showMessage("New Autfocus Added: " + FiducialAutoFocus.DEVICE_NAME);
+                try {
+                    afMgr.selectDevice(FiducialAutoFocus.DEVICE_NAME);
+                    //This is Stupidly Deprecated without a replacement for opening the Dialog
+                    // runAcquisition does not work well
+                } catch (MMException ex) {
+                    org.micromanager.utils.ReportingUtils.showError(ex);
+                }
+                //Show Acquisition
+                si.getAcqDlg().setVisible(true);
+            } 
+        };
+        
+        locAcqModel_ = new LocationAcquisitionModel( si.getSnapLiveWin(), trackAction, this );
         locAcqModel_.enableSelectedLocationModelGUIs( true );
         
         //Log That this has Been started Successfully

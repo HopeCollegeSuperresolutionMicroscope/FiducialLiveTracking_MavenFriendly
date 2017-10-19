@@ -171,10 +171,14 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         this( new ImagePlus("Track Processed Num:" + (fLocationModel.trackNumber_ + 1), iProc), fLocationModel, acquisitionTitle );
     }
     
-    /*
-    *   Apply a Given Match Case (Returned from fMoveFinder_) to FiducialAreaList_
-    *     Adds Listeners and calculates Average Translation of the Match Case.
-    */
+
+    /**
+     * Apply a Given Match Case (Returned from fMoveFinder_) to FiducialAreaList_
+     *     Adds Listeners and calculates Average Translation of the Match Case.
+     * 
+     * @param mCase - The Match case for all Fiducial Areas With Best matches above
+     *                the minimum requirements
+     */
     private void ApplySelectedMatchCase( TravelMatchCase mCase) {
             
         List< FiducialArea > tempList = new ArrayList< FiducialArea >();
@@ -201,6 +205,23 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         
         avgRelXPixelTranslate_ = avgXTranslate / (mCase.getFiducialTranslationSpots().size() * fAreaProcessor_.getPixelSize());
         avgRelYPixelTranslate_ = avgYTranslate / (mCase.getFiducialTranslationSpots().size() * fAreaProcessor_.getPixelSize());
+        
+        //Calculate Standard Deviation of those translations (unbiased)
+        double avgRelXPixelTranslateStdDev_ = 0, avgRelYPixelTranslateStdDev_ = 0;
+        int numFiducials = 0;
+        //Apply Selected Spots to the FiducialAreas and Fiducial Areas to the List
+        for( FiducialTravelDiff2D diff : mCase.getFiducialTranslationSpots() ) {
+            fArea = diff.areaOwnerRef_;
+            //We Can Really only Calculate Standard Deviation from the set of real to real reliably
+            if( !diff.toVirtual_ || !diff.fromVirtual_ ) {
+                avgRelXPixelTranslateStdDev_ += Math.pow((diff.xDiffs_ - avgXTranslate), 2);
+                avgRelYPixelTranslateStdDev_ += Math.pow((diff.yDiffs_ - avgYTranslate), 2);
+                numFiducials
+            }
+            
+            
+        }
+        
         
         //Update the List in case of references
         fiducialAreaList_.clear();

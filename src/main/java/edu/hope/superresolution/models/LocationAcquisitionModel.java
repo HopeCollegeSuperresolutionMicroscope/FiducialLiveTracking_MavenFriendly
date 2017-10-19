@@ -107,6 +107,7 @@ public class LocationAcquisitionModel {
                                                 new ArrayList< FiducialLocationModel >();  //FiductionLocationModels as set 1 per imagePlus
     private FiducialLocationModel selectedLocationsAcquisition_ = null;
     private final ImageWindow imgWin_;
+    private AcquisitionSubmitAction submitAction_;
     private ScriptInterface app_;
     private final LiveTracking pluginInstance_;  //Used For Calling in GUIs
     
@@ -153,12 +154,13 @@ public class LocationAcquisitionModel {
      * @param app - The MMStudio ScriptInterface
      * @param pluginInstance - The instance of the plugin that created this Acquisition
      */
-    public LocationAcquisitionModel( ImageWindow imgWin, ScriptInterface app, LiveTracking pluginInstance ) {
+    public LocationAcquisitionModel( ImageWindow imgWin, /*ScriptInterface app,*/AcquisitionSubmitAction submitAction, LiveTracking pluginInstance ) {
         
         pluginInstance_ = pluginInstance;
         imgWin_ = imgWin;
 
-        app_ = app;
+        //app_ = app;
+        submitAction_ = submitAction;
         //Set Gaussian Parameters graphical Components
         //This is a constrained structure currently given constructor updates
         gaussParamModel_ = new GaussianFitParamModel();
@@ -169,7 +171,7 @@ public class LocationAcquisitionModel {
         
         //Create An Action Listener for Clicking on the track Button
         //Should be variable based on a new parameter for the sake of other acquisition types
-        AcquisitionSubmitAction trackAction = new AcquisitionSubmitAction() {
+        /*AcquisitionSubmitAction trackAction = new AcquisitionSubmitAction() {
             
             @Override
             public void submitResponse( ) {
@@ -193,10 +195,10 @@ public class LocationAcquisitionModel {
                 //Show Acquisition
                 app_.getAcqDlg().setVisible(true);
             } 
-        };
+        };*/
         
         //Set Location Model graphical components
-        fidSelectForm_ = new FiducialSelectForm( /*selectedLocationsAcquisition_,*/ paramForm_, trackAction, imgWin_, pluginInstance_ );
+        fidSelectForm_ = new FiducialSelectForm( /*selectedLocationsAcquisition_,*/ paramForm_, submitAction_, imgWin_, pluginInstance_ );
         
         imgView_ = new ImageViewController( imgWin_/*, selectedLocationsAcquisition_*/ );
         //gaussParamModel_.updateProcessorMicroscopeModel( microModelForm_.getMicroscopeModel() );
@@ -230,7 +232,8 @@ public class LocationAcquisitionModel {
         //Should we keep this?
         imgWin_ = source.imgWin_;
 
-        app_ = source.app_;
+        //app_ = source.app_;
+        submitAction_ = source.submitAction_;
         //Set Gaussian Parameters graphical Components
         //This is a constrained structure currently given constructor updates
         gaussParamModel_ = source.gaussParamModel_;

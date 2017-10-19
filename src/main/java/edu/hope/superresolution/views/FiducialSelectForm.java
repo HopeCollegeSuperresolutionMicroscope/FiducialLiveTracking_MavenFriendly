@@ -635,7 +635,10 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
         if( WINDOW_OPEN ) {
             WINDOW_OPEN = false;
             this.setVisible( false );
-            pluginInstance_.dispose();
+            //To Be changed later, but assumes other instances are passed
+            if( pluginInstance_ != null ) {
+                pluginInstance_.dispose();
+            }
         }
     }//GEN-LAST:event_formWindowClosing
 

@@ -61,7 +61,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
     private final static String SLOP_TRAVEL_UM_STR = "Slop Travel (um)";
     private final static String THRESHOLD_UNCERTAINTY_STR = "Max Threshold Uncertainty (nm)";
     private final static String MAX_ANTICIPATED_TRAVEL_STR = "Maximum Anticipated Lateral Travel (um)";
-    private final static String TEST_FIRST_SLOP_MOVE_STR = "Move First On Slop";
+    //private final static String TEST_FIRST_SLOP_MOVE_STR = "Move First On Slop";
     
     //Default Values For First Time Start
     //Should become Programmatic
@@ -69,7 +69,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
     public boolean IS_SLOP_TRAVEL = false;
     public double SLOP_TRAVEL = .4;
     public double MAX_SCORE_UNCERTAINTY_THRESHOLD = 20;
-    public boolean TEST_FIRST_SLOP_MOVE = true;
+    //public boolean TEST_FIRST_SLOP_MOVE = false;
     
     private ScriptInterface app_;
     private CMMCore core_;
@@ -455,7 +455,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
       createProperty(THRESHOLD_UNCERTAINTY_STR, Double.toString(MAX_SCORE_UNCERTAINTY_THRESHOLD));
       //createProperty(MAX_ANTICIPATED_TRAVEL_STR, Double.toString(MAX_ANTICIPATED_TRAVEL));
       createProperty(SLOP_TRAVEL_UM_STR, Double.toString(SLOP_TRAVEL) );
-      createProperty( TEST_FIRST_SLOP_MOVE_STR, Boolean.toString(TEST_FIRST_SLOP_MOVE) );
+      //createProperty( TEST_FIRST_SLOP_MOVE_STR, Boolean.toString(TEST_FIRST_SLOP_MOVE) );
       
       loadSettings();
     }
@@ -468,7 +468,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
             IS_SLOP_TRAVEL = Boolean.parseBoolean( getPropertyValue(SLOP_TRAVEL_STR) );
             MAX_SCORE_UNCERTAINTY_THRESHOLD = Double.parseDouble( getPropertyValue(THRESHOLD_UNCERTAINTY_STR) );
             //MAX_ANTICIPATED_TRAVEL = Double.parseDouble( getPropertyValue(MAX_ANTICIPATED_TRAVEL_STR) );
-            TEST_FIRST_SLOP_MOVE = Boolean.parseBoolean(getPropertyValue (TEST_FIRST_SLOP_MOVE_STR) );
+            //TEST_FIRST_SLOP_MOVE = Boolean.parseBoolean(getPropertyValue (TEST_FIRST_SLOP_MOVE_STR) );
             
         } catch (NumberFormatException e) {
             // TODO Auto-generated catch block
@@ -1061,9 +1061,9 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         ij.IJ.log( "Travel Slop in Direction:" + baseMult + " and for number of Steps "+ (SLOP_TRAVEL/BASE_STEP_UM + offSet));
         
         //Test Case, First Slop Movement Before Checking
-        if( TEST_FIRST_SLOP_MOVE ) {
+        /*if( TEST_FIRST_SLOP_MOVE ) {
             moveZStageRelative( BASE_STEP_UM );
-        }
+        }*/
         
         boolean noFid = false;
         double stepInc = 0;
