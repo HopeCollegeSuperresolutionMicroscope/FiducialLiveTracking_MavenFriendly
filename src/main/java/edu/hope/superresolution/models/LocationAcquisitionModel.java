@@ -151,7 +151,7 @@ public class LocationAcquisitionModel {
      *  Use of the pluginInstance should not be made in the constructor as its calling context is malformed.
      * 
      * @param imgWin - The image Window in which selection should occur
-     * @param app - The MMStudio ScriptInterface
+     * @param submitAction - The action for when Fiducial Tracking View Clicked
      * @param pluginInstance - The instance of the plugin that created this Acquisition
      */
     public LocationAcquisitionModel( ImageWindow imgWin, /*ScriptInterface app,*/AcquisitionSubmitAction submitAction, LiveTracking pluginInstance ) {

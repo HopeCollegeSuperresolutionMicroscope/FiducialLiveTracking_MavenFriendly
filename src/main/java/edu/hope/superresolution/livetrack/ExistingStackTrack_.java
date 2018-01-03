@@ -27,6 +27,11 @@ public class ExistingStackTrack_ implements PlugInFilter {
     
     @Override
     public int setup(String arg, ImagePlus imp) {
+        
+       if( imp_ == null ) {
+            return STACK_REQUIRED;
+       }
+        
        imp_ = imp;
        //Add This imp_ and its ImageWindow to LocationAcquisition
        ImageWindow impWindow;

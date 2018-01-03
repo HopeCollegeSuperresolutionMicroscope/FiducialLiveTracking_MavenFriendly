@@ -36,15 +36,21 @@ how to open the Project in regards to that IDE for new contributors.
 
             MMRunEnvironmentDir: The path of the directory for Micro-Manager.  Typically (C:\\Program Files\\Micro-Manager-1.4)
 
+            [For Testing as ImageJ Plugin]
+            IJRunEnvironmentDir: The Directory for a non-Micro-Manager installation of ImageJ 
+            IJApp: The Application to run after copying the plugin to above ImageJ (ImageJ-win64.exe for Fiji-win64)
+
             debug.address:  Port Address on which to listen for the remote debugger.  Whatever it's set to
                             should be the address the debugger is attached to after running debug.
 
-      - Two Build Profiles Exist for this project:
+      - Three Build Profiles Exist for this project:
 
             debug-attach-remote: Compiles and Builds your current code into the micro-manager installation
                                  and waits for a remote debugger to attached.
 
             run:  Compiles and Builds your current code into micro-manager installation and starts it.
+
+            run-imagej-plugin: Compiles and Builds your current code into an installation of ImageJ (assuming executables like Fiji)
 
       - If in Netbeans, right click project->properties. Select the Actions Tab and select debug and run.
         In each action tab set 
@@ -53,13 +59,17 @@ how to open the Project in regards to that IDE for new contributors.
         From NetBeans, when you select debug, micro-manager will wait until you select Debug->attach Debugger (set the port to the 
            debug.address value you specified in UserSystem.properties)
 
+      - [For Ease of Use in Netbeans] Using more than the Default Run and Debug Actions, will require you to invoke the custom actions from submenus.
+        You can alternatively assign a custom button to another custom action that will invoke the above profile from the toolbar.
+        Please see this [Stackoverflow Link](https://stackoverflow.com/questions/9458928/invoking-actions-other-than-build-and-clean-build)
+
       -[Alternative Netbeans setup] To use Default Run Tab in Project->Properties, select the micro-manager installation
         directory as the working dir and set the main class to ij.ImageJ.  Under Actions, select Debug and you must 
         explicitly specify the ij.jar path in the micro-manager installation in place of the %classpath argument.    
 
       - If not in Netbeans, the command: mvn install -P [specific profile] should do either a debug or run operation.
-        Recall that you must attach the debugger to the jvm you're running with the debug profile, or micro-manager
-        won't start.
+        Recall that you must attach the debugger to the jvm you're running with the debug profile, since micro-manager
+        will block on a listener.
 
 
 

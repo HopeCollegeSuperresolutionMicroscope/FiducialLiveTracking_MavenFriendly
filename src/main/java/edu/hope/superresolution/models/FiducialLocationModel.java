@@ -216,7 +216,7 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
             if( !diff.toVirtual_ || !diff.fromVirtual_ ) {
                 avgRelXPixelTranslateStdDev_ += Math.pow((diff.xDiffs_ - avgXTranslate), 2);
                 avgRelYPixelTranslateStdDev_ += Math.pow((diff.yDiffs_ - avgYTranslate), 2);
-                numFiducials
+                //numFiducials
             }
             
             

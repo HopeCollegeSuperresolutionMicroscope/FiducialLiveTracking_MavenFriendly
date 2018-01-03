@@ -10,11 +10,6 @@
                 <goal>process-classes</goal>
                 <goal>install</goal>
             </goals>
-            <properties>
-                <exec.args>-classpath %classpath ij.ImageJ</exec.args>
-                <exec.executable>java</exec.executable>
-                <exec.workingdir>C:\Program Files\Micro-Manager-1.4</exec.workingdir>
-            </properties>
             <activatedProfiles>
                 <activatedProfile>run</activatedProfile>
             </activatedProfiles>
