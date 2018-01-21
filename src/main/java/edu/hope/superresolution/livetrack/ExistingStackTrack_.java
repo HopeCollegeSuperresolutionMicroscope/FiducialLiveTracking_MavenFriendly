@@ -9,6 +9,7 @@ import edu.hope.superresolution.autofocus.FiducialAutoFocus;
 import edu.hope.superresolution.models.FiducialLocationModel;
 import edu.hope.superresolution.models.LocationAcquisitionModel;
 import ij.ImagePlus;
+import ij.WindowManager;
 import ij.gui.ImageWindow;
 import ij.plugin.filter.PlugInFilter;
 import ij.process.ImageProcessor;
@@ -27,8 +28,8 @@ public class ExistingStackTrack_ implements PlugInFilter {
     
     @Override
     public int setup(String arg, ImagePlus imp) {
-        
-       if( imp_ == null ) {
+       
+       if( imp == null ) {
             return STACK_REQUIRED;
        }
         
@@ -63,16 +64,15 @@ public class ExistingStackTrack_ implements PlugInFilter {
        locAcq_ = new LocationAcquisitionModel( impWindow, trackAction, null );
        //This is okay because we've separated Fiducial Form and response
        locAcq_.enableSelectedLocationModelGUIs(true);
-       ij.IJ.showMessage(" Currently ending setup");
        
-       return DOES_8G+DOES_16+STACK_REQUIRED;
+       return DOES_8G+DOES_16+STACK_REQUIRED+PlugInFilter.DOES_STACKS;
         
     }
     
     @Override
     public void run(ImageProcessor ip) {
-        //Don't use ImageProcessor.  WE're Abusing PluginFilter's passThrough of imagePlus in setup()
-        ij.IJ.showMessage(" The Run Method is running now ");
+        //This unfortunately is immediately and asynchronously run on every image in a stack
+        //This may be statically interrupted if we'd like to do it?
     }
 
         

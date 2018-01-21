@@ -11,7 +11,7 @@
                 <goal>install</goal>
             </goals>
             <activatedProfiles>
-                <activatedProfile>run</activatedProfile>
+                <activatedProfile>MM-run-plugin</activatedProfile>
             </activatedProfiles>
         </action>
         <action>
@@ -40,7 +40,7 @@
                 <goal>install</goal>
             </goals>
             <activatedProfiles>
-                <activatedProfile>debug-attach-remote</activatedProfile>
+                <activatedProfile>MM-debug-attach-remote</activatedProfile>
             </activatedProfiles>
         </action>
     </actions>

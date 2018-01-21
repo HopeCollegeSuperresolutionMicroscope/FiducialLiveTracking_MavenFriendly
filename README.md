@@ -29,28 +29,41 @@ how to open the Project in regards to that IDE for new contributors.
       -Additionally, There is a TODO to compile the source and javadoc files as well and provide them in the 3rdpartylib
        folder as well.  This has not been done.
 
-      RUNNING AND DEBUGGING THE PLUGIN THROUGH CURRENT MICRO-MANAGER INSTALLATION
+       BUILD OPTIONS
 
       - The file UserSystem.properties in the project directory is meant to be set 
         for use with your local installation of micromanager:
 
+            [For Testing as Micro-manager Plugin]
             MMRunEnvironmentDir: The path of the directory for Micro-Manager.  Typically (C:\\Program Files\\Micro-Manager-1.4)
 
             [For Testing as ImageJ Plugin]
             IJRunEnvironmentDir: The Directory for a non-Micro-Manager installation of ImageJ 
-            IJApp: The Application to run after copying the plugin to above ImageJ (ImageJ-win64.exe for Fiji-win64)
+            IJApp: The name of the ImageJ jar source (this will be located in IJRunEnvironmentDir/jar) and
+                   of the format ij-*.jar
 
             debug.address:  Port Address on which to listen for the remote debugger.  Whatever it's set to
                             should be the address the debugger is attached to after running debug.
 
-      - Three Build Profiles Exist for this project:
+      RUNNING AND DEBUGGING THE PLUGIN THROUGH CURRENT MICRO-MANAGER INSTALLATION
 
-            debug-attach-remote: Compiles and Builds your current code into the micro-manager installation
-                                 and waits for a remote debugger to attached.
+      - Two Build Profiles Exist for this purpose:
 
-            run:  Compiles and Builds your current code into micro-manager installation and starts it.
+            MM-debug-attach-remote: Compiles and Builds the current code into the target directory and
+                                    the micro-manager installation and waits for a remote debugger to attached.
 
-            run-imagej-plugin: Compiles and Builds your current code into an installation of ImageJ (assuming executables like Fiji)
+            MM-run-plugin:  Compiles and Builds your current code into into the target directory and the
+                            micro-manager installation and starts it.
+
+      RUNNING AND DEBUGGING THE PLUGIN THROUGH CURRENT IMAGEJ INSTALLATION
+
+      - Two Build Profiles Exist for this purpose:
+
+            ImageJ-run-plugin: Compiles and Builds the Micromanager code and a ImageJ plugin variant
+                               into the target directorys and the ImageJ variant into the specified installation of ImageJ
+                               and starts it.
+
+      EXAMPLES OF SETTING BUILD PROFILES FOR TESTING
 
       - If in Netbeans, right click project->properties. Select the Actions Tab and select debug and run.
         In each action tab set 
@@ -59,7 +72,7 @@ how to open the Project in regards to that IDE for new contributors.
         From NetBeans, when you select debug, micro-manager will wait until you select Debug->attach Debugger (set the port to the 
            debug.address value you specified in UserSystem.properties)
 
-      - [For Ease of Use in Netbeans] Using more than the Default Run and Debug Actions, will require you to invoke the custom actions from submenus.
+      - [For Ease of Use in Netbeans] Using more than the Default Run and Debug Actions will require you to invoke the custom actions from submenus.
         You can alternatively assign a custom button to another custom action that will invoke the above profile from the toolbar.
         Please see this [Stackoverflow Link](https://stackoverflow.com/questions/9458928/invoking-actions-other-than-build-and-clean-build)
 

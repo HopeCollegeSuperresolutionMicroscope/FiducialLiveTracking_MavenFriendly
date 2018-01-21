@@ -5,9 +5,16 @@
     <artifactId>FiducialLiveTracking</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
-    <profiles>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.6</maven.compiler.source>
+        <maven.compiler.target>1.6</maven.compiler.target>
+        <!-- The PostFix for the ImageJ standalone distribution -->
+        <distribution.name.ij>${project.build.finalName}-IJ_Standalone</distribution.name.ij>
+    </properties>
+    <profiles>       
         <profile>
-            <id>debug-attach-remote</id>
+            <id>ImageJ-run-plugin</id>
             <build>
                 <plugins>
                     <!-- Read user SystemProperties -->
@@ -29,26 +36,56 @@
                             </execution>
                         </executions>
                     </plugin>
-                    <!-- Copy into mmplugins dir of the ApplicationDirectory to run -->
+                    <!-- Package a jar with any missing dependency into the ImageJ execution directory structure -->
                     <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-jar-plugin</artifactId>
-                        <version>3.0.2</version>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/assembly/IJdistribution.xml</descriptor>
+                            </descriptors>
+                            <outputDirectory>${project.build.directory}</outputDirectory>
+                            <!-- This currently makes it the same artifact, which means I need to split up the maven projects in the future -->
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <finalName>${distribution.name.ij}</finalName>
+                        </configuration>
                         <executions>
                             <execution>
-                                <id>copy-jar</id>
+                                <id>make-assembly</id> 
+                                <phase>package</phase> 
                                 <goals>
-                                    <goal>jar</goal>
+                                    <goal>single</goal>
                                 </goals>
-                                <configuration>
-                                    <outputDirectory>${MMRunEnvironmentDir}\mmplugins</outputDirectory>
-                                    <!-- Appends underscore for ImageJ standard -->
-                                    <classifier>appRunTest</classifier>    
-                                </configuration> 
                             </execution>
                         </executions>
                     </plugin>
-                    <!-- Attempt to produce an Executable That Will Run The Debug for Maven -->
+                    <!-- Copy the jar immediately into the ImageJ Directory for execution -->
+                    <plugin>
+                        <artifactId>maven-resources-plugin</artifactId>
+                        <version>3.0.2</version>
+                        <executions>
+                            <execution>
+                                <id>ij-jar-install</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <outputDirectory>${IJRunEnvironmentDir}/plugins</outputDirectory>
+                            <resources>          
+                                <resource>
+                                    <directory>${project.build.directory}</directory>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>${distribution.name.ij}*</include>
+                                    </includes>
+                                </resource>
+                            </resources>              
+                        </configuration> 
+                    </plugin>
+                    <!-- Execute The ImageJ Executable that we placed the IJ Distributable jar With-->
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
@@ -61,94 +98,124 @@
                                     <goal>exec</goal>
                                 </goals>
                             </execution>
-                        </executions>
+                        </executions>       
                         <configuration> 
-                            <workingDirectory>${MMRunEnvironmentDir}</workingDirectory>
-                            <executable>${MMRunEnvironmentDir}\ImageJ.exe</executable>
-                            <includeProjectDependencies>true</includeProjectDependencies>
-                            <!--<arguments>
-                                <argument>-Xdebug</argument>
-                                <argument>-Xrunjdwp:transport=dt_socket,server=y,address=${debug.address},suspend=y</argument>
-                                <argument>-classpath</argument>                                
-                                <argument>${MMRunEnvironmentDir}\mmplugins\Aquisition_Tools\Gaussian.jar;${MMRunEnvironmentDir}\ij.jar</argument>
-                                <argument>ij.ImageJ</argument>
-                            </arguments>-->
-                        </configuration>                            
-                    </plugin>                     
-                </plugins>
-            </build>
-        </profile>        
-        <profile>
-            <id>run-imagej-plugin</id>
-            <build>
-                <plugins>
-                    <!-- Read user SystemProperties -->
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>properties-maven-plugin</artifactId>
-                        <version>1.0-alpha-1</version>
-                        <executions>
-                            <execution>
-                                <phase>initialize</phase>
-                                <goals>
-                                    <goal>read-project-properties</goal>
-                                </goals>
-                                <configuration>
-                                    <files>
-                                        <file>./UserSystem.properties</file>
-                                    </files>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <!-- Copy into plugins dir of the ApplicationDirectory to run -->
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-jar-plugin</artifactId>
-                        <version>3.0.2</version>
-                        <executions>
-                            <execution>
-                                <id>copy-jar</id>
-                                <goals>
-                                    <goal>jar</goal>
-                                </goals>
-                                <configuration>
-                                    <outputDirectory>${IJRunEnvironmentDir}\plugins</outputDirectory>
-                                    <classifier>_appRunTest</classifier>    
-                                </configuration> 
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <!-- Attempt to produce an Executable That Will Run The Debug for Maven -->
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>exec-maven-plugin</artifactId>
-                        <version>1.3.2</version>
-                        <executions>
-                            <execution>
-                                <id>testRun</id>
-                                <phase>install</phase>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration> 
+                            <executable>java</executable>
                             <workingDirectory>${IJRunEnvironmentDir}</workingDirectory>
-                            <executable>${IJRunEnvironmentDir}\${IJApp}</executable>
-                            <!--<includeProjectDepeC:\Users\Owner\Documents\fiji-win64\Fiji.app\ndencies>true</includeProjectDependencies>
+                            <!--<includeProjectDependencies>true</includeProjectDependencies>-->
                             <arguments>
                                 <argument>-classpath</argument>                                
-                                <argument>${IJjar}</argument>
+                                <argument>${IJRunEnvironmentDir}\jars\${IJApp}</argument>
                                 <argument>ij.ImageJ</argument>
-                            </arguments>-->
-                        </configuration>                            
-                    </plugin>                     
+                            </arguments>
+                        </configuration>                   
+                    </plugin>                 
                 </plugins>
             </build>
         </profile>
         <profile>
-            <id>run</id>
+            <id>ImageJ-debug-attach-remote</id>
+            <build>
+                <plugins>
+                    <!-- Read user SystemProperties -->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>properties-maven-plugin</artifactId>
+                        <version>1.0-alpha-1</version>
+                        <executions>
+                            <execution>
+                                <phase>initialize</phase>
+                                <goals>
+                                    <goal>read-project-properties</goal>
+                                </goals>
+                                <configuration>
+                                    <files>
+                                        <file>./UserSystem.properties</file>
+                                    </files>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- Package a jar with any missing dependency into the ImageJ execution directory structure -->
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/assembly/IJdistribution.xml</descriptor>
+                            </descriptors>
+                            <outputDirectory>${project.build.directory}</outputDirectory>
+                            <!-- This currently makes it the same artifact, which means I need to split up the maven projects in the future -->
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <finalName>${distribution.name.ij}</finalName>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>make-assembly</id> 
+                                <phase>package</phase> 
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- Copy the jar immediately into the ImageJ Directory for execution -->
+                    <plugin>
+                        <artifactId>maven-resources-plugin</artifactId>
+                        <version>3.0.2</version>
+                        <executions>
+                            <execution>
+                                <id>ij-jar-install</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <outputDirectory>${IJRunEnvironmentDir}/plugins</outputDirectory>
+                            <resources>          
+                                <resource>
+                                    <directory>${project.build.directory}</directory>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>${distribution.name.ij}*</include>
+                                    </includes>
+                                </resource>
+                            </resources>              
+                        </configuration> 
+                    </plugin>
+                    <!-- Execute The ImageJ Executable that we placed the IJ Distributable jar With-->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>1.3.2</version>
+                        <executions>
+                            <execution>
+                                <id>testRun</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                            </execution>
+                        </executions>       
+                        <configuration> 
+                            <executable>java</executable>
+                            <workingDirectory>${IJRunEnvironmentDir}</workingDirectory>
+                            <arguments>
+                                <argument>-Xdebug</argument>
+                                <argument>-Xrunjdwp:transport=dt_socket,server=y,address=${debug.address},suspend=y</argument>
+                                <argument>-classpath</argument>                                
+                                <argument>${IJRunEnvironmentDir}\jars\${IJApp}</argument>
+                                <argument>ij.ImageJ</argument>
+                            </arguments>
+                        </configuration>                   
+                    </plugin>                 
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>MM-run-plugin</id>
             <build>
                 <plugins>
                     <!-- Read user SystemProperties -->
@@ -216,13 +283,85 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <id>MM-debug-attach-remote</id>
+            <build>
+                <plugins>
+                    <!-- Read user SystemProperties -->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>properties-maven-plugin</artifactId>
+                        <version>1.0-alpha-1</version>
+                        <executions>
+                            <execution>
+                                <phase>initialize</phase>
+                                <goals>
+                                    <goal>read-project-properties</goal>
+                                </goals>
+                                <configuration>
+                                    <files>
+                                        <file>./UserSystem.properties</file>
+                                    </files>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- Copy into mmplugins dir of the ApplicationDirectory to run -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-jar-plugin</artifactId>
+                        <version>3.0.2</version>
+                        <executions>
+                            <execution>
+                                <id>copy-jar</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${MMRunEnvironmentDir}\mmplugins</outputDirectory>
+                                    <!-- Appends underscore for ImageJ standard -->
+                                    <classifier>appRunTest</classifier>    
+                                </configuration> 
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- Attempt to produce an Executable That Will Run The Debug for Maven -->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>1.3.2</version>
+                        <executions>
+                            <execution>
+                                <id>testRun</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration> 
+                            <workingDirectory>${MMRunEnvironmentDir}</workingDirectory>
+                            <executable>java</executable>
+                            <arguments>
+                                <argument>-Xdebug</argument>
+                                <argument>-Xrunjdwp:transport=dt_socket,server=y,address=${debug.address},suspend=y</argument>
+                                <argument>-classpath</argument>                                
+                                <argument>${MMRunEnvironmentDir}\mmplugins\Aquisition_Tools\Gaussian.jar;${MMRunEnvironmentDir}\ij.jar</argument>
+                                <argument>ij.ImageJ</argument>
+                            </arguments>
+                        </configuration>                            
+                    </plugin>                     
+                </plugins>
+            </build>
+        </profile> 
     </profiles>
+    <!-- Standard Build For all profiles -->
     <build>
         <filters>
             <filter>UserSystem.properties</filter>
         </filters>
         <plugins>
-            <!-- Read Properties that User should've filled in  -->
+            <!-- Read Properties that User should've filled in in UserSystem.properties  -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>properties-maven-plugin</artifactId>
@@ -254,7 +393,6 @@
                     </suiteXmlFiles>
                 </configuration>
             </plugin>            
-
         </plugins>
     </build>  
     <dependencies>
@@ -349,9 +487,4 @@
             <version>4.11</version>
         </dependency>
     </dependencies>
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.6</maven.compiler.source>
-        <maven.compiler.target>1.6</maven.compiler.target>
-    </properties>
 </project>
