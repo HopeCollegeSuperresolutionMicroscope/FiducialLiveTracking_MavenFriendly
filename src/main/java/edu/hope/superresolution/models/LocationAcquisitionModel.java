@@ -205,7 +205,7 @@ public class LocationAcquisitionModel {
         
         try {
             //Create current Location Model and set to selectedLocationAcquisition
-            pushNextFiducialLocationModel( imgWin_.getImagePlus(), true );
+            pushNextFiducialLocationModel( imgWin_.getImagePlus().getProcessor(), true );
         } catch (NoFiducialException ex) {
             //Currently there should be no throw when creating the first FiducialLocatinModel
         }
@@ -294,6 +294,8 @@ public class LocationAcquisitionModel {
 
     }
     
+    //Deprecated: Was Developed Under Assumption that ImagePlus would be 1 slice processors.
+    //To Be Deleted Once Usage is proven unnecessary.
     /**
     *  Pushes a new Fiducial Location Model Onto fLocationAcquistions_ (internal stack)
     * <p>
@@ -314,19 +316,19 @@ public class LocationAcquisitionModel {
     *                               if aborted and not added but throws this Exception
     *   @see FiducialLocationModel
     */
-    public FiducialLocationModel pushNextFiducialLocationModel( ImagePlus ip, boolean setSelected ) throws NoFiducialException {
+    /*public FiducialLocationModel pushNextFiducialLocationModel( ImagePlus ip, boolean setSelected ) throws NoFiducialException {
         
         FiducialLocationModel locModel = null;
-        if( /*areaUISelection_ ||*/ fLocationAcquisitions_.size() <= 0 ) {
+        if( /*areaUISelection_ ||*/ /*fLocationAcquisitions_.size() <= 0 ) {
             //Produce the GUIs and wait...
             //Currently No GUIS or Blocking
-            locModel = new FiducialLocationModel( ip, gaussParamModel_.getCurrentProcessor(),
+            locModel = new FiducialLocationModel( dummyPlus, gaussParamModel_.getCurrentProcessor(),
                                                         uniqueAcquisitionTitle_ );
         }       
         else {
             //Copy From Last FiducialLocationModel
             try {
-                locModel = new FiducialLocationModel( ip, 
+                locModel = new FiducialLocationModel( dummyPlus, 
                     fLocationAcquisitions_.get( fLocationAcquisitions_.size() - 1 ),
                                                         uniqueAcquisitionTitle_ );
             } catch (NoFiducialException ex) {
@@ -345,7 +347,7 @@ public class LocationAcquisitionModel {
         }
         
         return locModel;
-    }
+    }*/
     
     /**
      *  Overloaded Version of pushNextFiducialLocationModel, only requiring an ImageProcessor
