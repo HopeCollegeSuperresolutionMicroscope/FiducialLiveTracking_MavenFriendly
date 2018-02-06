@@ -6,6 +6,7 @@
 package edu.hope.superresolution.views;
 
 import com.google.common.eventbus.Subscribe;
+import edu.hope.superresolution.Utils.IJMMReportingUtils;
 import ij.CompositeImage;
 import ij.IJ;
 import ij.ImagePlus;
@@ -280,7 +281,7 @@ public class TestImageWindowCombinations extends StackWindow {
          try {
             displayPrefs_ = Preferences.userNodeForPackage(getClass());
          } catch (Exception e) {
-            ReportingUtils.logError(e);
+            IJMMReportingUtils.logError(e);
          }
       }
    }
@@ -355,7 +356,7 @@ public class TestImageWindowCombinations extends StackWindow {
       try {
          super.close();
       } catch (NullPointerException ex) {
-         ReportingUtils.showError(ex, "Null pointer error in ImageJ code while closing window");
+         IJMMReportingUtils.showError(ex, "Null pointer error in ImageJ code while closing window");
       }
       MMStudio.getInstance().removeMMBackgroundListener(this);
       MMStudio.getInstance().removeMMBackgroundListener(canvasPanel_);
@@ -367,7 +368,7 @@ public class TestImageWindowCombinations extends StackWindow {
       try {
          super.windowClosed(E);
       } catch (NullPointerException ex) {
-            ReportingUtils.showError(ex, "Null pointer error in ImageJ code while closing window");
+            IJMMReportingUtils.showError(ex, "Null pointer error in ImageJ code while closing window");
       }
    }
 

@@ -8,6 +8,7 @@ package edu.hope.superresolution.models;
 import edu.hope.superresolution.MMgaussianfitmods.datasubs.BoundedSpotData;
 import edu.hope.superresolution.MMgaussianfitmods.datasubs.ExtendedGaussianInfo;
 import edu.hope.superresolution.Utils.CopyUtils;
+import edu.hope.superresolution.Utils.IJMMReportingUtils;
 import edu.hope.superresolution.exceptions.NoFiducialException;
 import edu.hope.superresolution.genericstructures.FiducialTravelDiff2D;
 import edu.hope.superresolution.genericstructures.TravelMatchCase;
@@ -89,7 +90,7 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         try {
             fAreaProcessor_ = CopyUtils.abstractCopy( fAreaProcessor );
         } catch ( Exception ex ) {
-            ReportingUtils.logError(ex, "Failure to Copy Processor in New FiducialLocationModel");
+            IJMMReportingUtils.logError(ex, "Failure to Copy Processor in New FiducialLocationModel");
             throw new RuntimeException( ex );  //Allow Micromanager to respond Appropriately
         }
         
@@ -106,7 +107,7 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         try {
             fAreaProcessor_ = CopyUtils.abstractCopy( fAreaProcessor );
         } catch ( Exception ex ) {
-            ReportingUtils.logError(ex, "Failure to Copy Processor in New FiducialLocationModel");
+            IJMMReportingUtils.logError(ex, "Failure to Copy Processor in New FiducialLocationModel");
             throw new RuntimeException( ex );  //Allow Micromanager to respond Appropriately
         }
     }
@@ -132,7 +133,7 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         try {
             fAreaProcessor_ = CopyUtils.abstractCopy( fLocationModel.fAreaProcessor_ );
         } catch ( Exception ex ) {
-            ReportingUtils.logError(ex, "Failure to Copy Processor in New FiducialLocationModel");
+            IJMMReportingUtils.logError(ex, "Failure to Copy Processor in New FiducialLocationModel");
             throw new RuntimeException( ex );  //Allow Micromanager to respond Appropriately
         }
         //Create a Movement Finder Based off of previous FiducialAreaList
@@ -155,6 +156,19 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         selectedFiducialArea_ = fiducialAreaList_.get( selectedAreaIndex_ );
         trackNumber_ = fLocationModel.trackNumber_ + 1;
 
+    }
+    
+    /**
+     * Static method for creating a FiducialLocation Model that tracks Fiducials from another Fiducial Location Model.
+     * 
+     * @param ip
+     * @param fLocationModel
+     * @param acquisitionTitle
+     * @return 
+     */
+    public static FiducialLocationModel createTrackedFiducialLocationModel( ImagePlus ip, FiducialLocationModel fLocationModel, 
+                                        String acquisitionTitle ) {
+        
     }
     
     /**

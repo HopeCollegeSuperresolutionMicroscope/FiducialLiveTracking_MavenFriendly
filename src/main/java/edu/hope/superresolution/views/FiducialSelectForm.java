@@ -5,6 +5,7 @@
  */
 package edu.hope.superresolution.views;
 
+import edu.hope.superresolution.Utils.IJMMReportingUtils;
 import edu.hope.superresolution.livetrack.LiveTracking;
 import edu.hope.superresolution.models.FiducialArea;
 import edu.hope.superresolution.models.ModelUpdateListener;
@@ -567,7 +568,7 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
      */
     private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
         if( fiducialList_.size() < 3 ) {
-            ReportingUtils.showMessage( "You must Select at least 3 Fiducials!");
+            IJMMReportingUtils.showMessage( "You must Select at least 3 Fiducials!");
             return;
         }
         fLocationModel_.setMinNumFiducialTracks( minimumNumFidForTracks_ );
@@ -714,7 +715,7 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
                 }
             }
             if (count > 0) {
-                ReportingUtils.showMessage(count + " Fiducial Areas removed for no spots!");
+                IJMMReportingUtils.showMessage(count + " Fiducial Areas removed for no spots!");
             }
             refreshClicked_ = false;
         }

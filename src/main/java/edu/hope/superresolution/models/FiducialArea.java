@@ -7,6 +7,7 @@ package edu.hope.superresolution.models;
 
 import edu.hope.superresolution.MMgaussianfitmods.datasubs.BoundedSpotData;
 import edu.hope.superresolution.MMgaussianfitmods.datasubs.ExtendedGaussianInfo;
+import edu.hope.superresolution.Utils.IJMMReportingUtils;
 import edu.hope.superresolution.genericstructures.CopySourceListReference;
 import ij.gui.Roi;
 import java.awt.Color;
@@ -466,7 +467,7 @@ public class FiducialArea extends Observable {
             } else {
                 //Contingency for faulty selectedSpot_ in a track
                 if( refSigmaNaut_ != 0 ) {
-                    ReportingUtils.showError(  "Somehow A TrackRegion Could not"
+                    IJMMReportingUtils.showError(  "Somehow A TrackRegion Could not"
                                                 + " create a spot to track" );
                 }
             } 
@@ -622,7 +623,7 @@ public class FiducialArea extends Observable {
                 //populate and Sort From Max to Min
                 populateBoundedSpotList(list);
             } catch (Exception ex) {
-                ReportingUtils.showError(ex);
+                IJMMReportingUtils.showError(ex);
             }
           //Indicate that we have performed a full List Operation
           setIsChanging(false);

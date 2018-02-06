@@ -7,6 +7,7 @@ package edu.hope.superresolution.models;
 
 import edu.hope.superresolution.ImageJmodifieds.TwoSliceSelector;
 import edu.hope.superresolution.MMgaussianfitmods.datasubs.ExtendedGaussianInfo;
+import edu.hope.superresolution.Utils.IJMMReportingUtils;
 import edu.hope.superresolution.autofocus.FiducialAutoFocus;
 import edu.hope.superresolution.exceptions.NoFiducialException;
 import edu.hope.superresolution.genericstructures.VirtualDirectoryManager;
@@ -258,7 +259,7 @@ public class LocationAcquisitionModel {
                     org.micromanager.utils.ReportingUtils.showError(ex);
                 }
                 //Notify User Of New Autofocus Options
-                org.micromanager.utils.ReportingUtils.showMessage("New Autfocus Added: " + FiducialAutoFocus.DEVICE_NAME);
+                IJMMReportingUtils.showMessage("New Autfocus Added: " + FiducialAutoFocus.DEVICE_NAME);
                 try {
                     afMgr.selectDevice(FiducialAutoFocus.DEVICE_NAME);
                     //This is Stupidly Deprecated without a replacement for opening the Dialog
@@ -384,7 +385,7 @@ public class LocationAcquisitionModel {
                 setSelectedLocationAcquistion( fLocationAcquisitions_.size() - 1 );
             } catch ( Exception ex ) {
                 ex.printStackTrace();
-                ReportingUtils.logError( ex, ex.getMessage() );
+                IJMMReportingUtils.logError( ex, ex.getMessage() );
             }
         }
         

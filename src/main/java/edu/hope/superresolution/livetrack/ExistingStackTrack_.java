@@ -5,7 +5,9 @@
  */
 package edu.hope.superresolution.livetrack;
 
+import edu.hope.superresolution.Utils.IJMMReportingUtils;
 import edu.hope.superresolution.autofocus.FiducialAutoFocus;
+import edu.hope.superresolution.exceptions.NoFiducialException;
 import edu.hope.superresolution.models.FiducialLocationModel;
 import edu.hope.superresolution.models.LocationAcquisitionModel;
 import ij.ImagePlus;
@@ -50,11 +52,18 @@ public class ExistingStackTrack_ implements PlugInFilter {
             
             @Override
             public void submitResponse( ) {
-                //This is a rudimentary Way of utilizing the current Classes
-                int numSlices = imp_.getNSlices();
-                for( int i = 1; i <= numSlices; i++ ) {
+                //For the sake of simplicity, we assume we track all slices
+                //Workaround to determine stackDepth
+                int stackSize = imp_.getImageStackSize();
+
+                for( int i = 1; i <= stackSize; i++ ) {
                     imp_.setSlice(i);
-                    FiducialLocationModel fModel = locAcq_.pushNextFiducialLocationModel(imp_.getProcessor(), true);
+                    try {
+                        FiducialLocationModel fModel = locAcq_.pushNextFiducialLocationModel(imp_.getProcessor(), true);
+                    } catch(NoFiducialException ex) {
+                        IJMMReportingUtils.showError("Could Not Find a Fiducial!");
+                        
+                    }
                     
                 }
             } 

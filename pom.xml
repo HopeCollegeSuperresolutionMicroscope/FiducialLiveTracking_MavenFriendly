@@ -417,18 +417,8 @@
             <version>1.0.19</version>
         </dependency>
         <dependency>
-            <groupId>edu.valelab</groupId>
-            <artifactId>gaussianfit</artifactId>
-            <version>1.4.22</version>
-        </dependency>
-        <dependency>
             <groupId>org.micromanager</groupId>
             <artifactId>mmcorej</artifactId>
-            <version>1.4.22</version>
-        </dependency>
-        <dependency>
-            <groupId>org.micromanager</groupId>
-            <artifactId>MMJ_</artifactId>
             <version>1.4.22</version>
         </dependency>
         <dependency>
@@ -485,6 +475,16 @@
             <artifactId>junit</artifactId>
             <scope>test</scope>
             <version>4.11</version>
+        </dependency>
+        <dependency>
+            <groupId>org.micromanager</groupId>
+            <artifactId>MMJ_</artifactId>
+            <version>1.4.22</version>
+        </dependency>
+        <dependency>
+            <groupId>edu.valelab</groupId>
+            <artifactId>gaussianfit</artifactId>
+            <version>1.4.22</version>
         </dependency>
     </dependencies>
 </project>
