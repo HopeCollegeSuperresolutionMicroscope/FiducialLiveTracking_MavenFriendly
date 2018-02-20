@@ -12,6 +12,7 @@ import edu.hope.superresolution.models.ModelUpdateListener;
 import edu.hope.superresolution.models.FiducialLocationModel;
 import edu.hope.superresolution.models.LocationAcquisitionModel;
 import edu.hope.superresolution.models.ModelUpdateDispatcher;
+import ij.ImagePlus;
 import ij.gui.ImageWindow;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
@@ -541,7 +542,7 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
                 selectedFiducials_.remove(i);
             }
         }
-        //Clear All Selections Listeners should be aware of this and accoutn for it
+        //Clear All Selections Listeners should be aware of this and account for it
         lsm.clearSelection();
 
     }//GEN-LAST:event_removeFiducialButActionPerformed
@@ -614,6 +615,7 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
         
     }//GEN-LAST:event_minFiducialTrackNumTextField_ActionPerformed
 
+    static int i = 0;
     /**
      *  Refreshes All Fiducial Areas (Including New Fits) by adding the current ImagePlus if it is new
      * 
@@ -621,7 +623,10 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
      */
     private void refreshButton_ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_refreshButton_ActionPerformed
         refreshClicked_ = true;    
-        refreshClicked_ = fLocationModel_.updateImagePlus( selectWindow_.getImagePlus() );  
+        //refreshClicked_ = fLocationModel_.updateImagePlus( selectWindow_.getImagePlus() ); 
+        //This should allow for discrepancies in current slice.  I.e. starting on slice 10 in a stack
+        refreshClicked_ = fLocationModel_.updateImageProcessor( selectWindow_.getImagePlus().getProcessor() );
+        IJMMReportingUtils.showMessage( (refreshClicked_) ? "True": "False");
     }//GEN-LAST:event_refreshButton_ActionPerformed
 
     private void CancelButton_ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_CancelButton_ActionPerformed
@@ -703,7 +708,6 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
      */
     private void onFiducialAreaDataChanged() {
         if (refreshClicked_) {
-            ij.IJ.log("In Data Change");
             List<FiducialArea> fAreas = fLocationModel_.getFiducialAreaList();
             int count = 0;
             for (int i = 0; i < fAreas.size(); ++i) {
@@ -723,7 +727,7 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
     
     /**
      *  Refreshes the entire list and its holdings based on the fLocationModel
-     *    Since this is just a semantic value, just update the number
+     *    Since this is just a semantic value for available indices, just update the number
      * 
      */
     private void refreshList(  ) {

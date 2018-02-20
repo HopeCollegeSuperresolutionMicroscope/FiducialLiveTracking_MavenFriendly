@@ -10,6 +10,7 @@ import edu.hope.superresolution.MMgaussianfitmods.datasubs.ExtendedGaussianInfo;
 import edu.hope.superresolution.Utils.CopyUtils;
 import edu.hope.superresolution.Utils.IJMMReportingUtils;
 import edu.hope.superresolution.exceptions.NoFiducialException;
+import edu.hope.superresolution.exceptions.NoTrackException;
 import edu.hope.superresolution.genericstructures.FiducialTravelDiff2D;
 import edu.hope.superresolution.genericstructures.TravelMatchCase;
 import edu.hope.superresolution.imagetrack.FiducialMoveFinder;
@@ -167,8 +168,16 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
      * @return 
      */
     public static FiducialLocationModel createTrackedFiducialLocationModel( ImagePlus ip, FiducialLocationModel fLocationModel, 
-                                        String acquisitionTitle ) {
-        
+                                        String acquisitionTitle ) throws NoFiducialException, NoTrackException {
+        return new FiducialLocationModel( ip, fLocationModel, acquisitionTitle );
+    }
+    
+    public static FiducialLocationModel createTrackedFiducialLocationModel( ImageProcessor iProc, FiducialLocationModel fLocationModel,
+                                            String acquisitionTitle ) throws NoFiducialException, NoTrackException {
+        return new FiducialLocationModel( iProc, fLocationModel, acquisitionTitle );
+        /*if( !fModel.isTracked ) {
+            throw new NoTrackException( "Failed to Track to previous FiducialModel" );
+        }*/
     }
     
     /**
@@ -453,11 +462,32 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
      *            if the ImagePlus was null or has not changed.
      */
     public boolean updateImagePlus( ImagePlus ip ) {
-        if( ip == null && ip == ip_ ) {
+        if( ip == null ) {
             return false;
         }
         
         ip_ = ip;
+        for( FiducialArea fArea : fiducialAreaList_ ) {
+            fArea.updateImagePlus( ip_ );
+        }
+        
+        return true;
+    }
+   
+     /**
+     * Updates the ImagePlus with a current ImageProcessor and reevaluates all Fiducial Areas.
+     * This resets and rescans all Fiducial Areas.
+     * <p>
+     * TODO: Ensure thread Safety
+     * 
+     * @param ip - the new imagePlus
+     * @return - <code>true</code> if the ImagePlus was different or not null <code>false</code>
+     *            if the ImagePlus was null or has not changed.
+     */
+    public boolean updateImageProcessor( ImageProcessor iproc ) {
+        if( iproc == null) return false;
+        
+        ip_.setProcessor(iproc);
         for( FiducialArea fArea : fiducialAreaList_ ) {
             fArea.updateImagePlus( ip_ );
         }
