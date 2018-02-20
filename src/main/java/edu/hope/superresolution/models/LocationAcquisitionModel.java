@@ -371,9 +371,11 @@ public class LocationAcquisitionModel {
         else {
             //Copy From Last FiducialLocationModel
             try {
-                locModel = new FiducialLocationModel( iProc, 
+                locModel = FiducialLocationModel.createTrackedFiducialLocationModel(iProc, 
+                        fLocationAcquisitions_.get( fLocationAcquisitions_.size() - 1 ), uniqueAcquisitionTitle_);
+                        /*new FiducialLocationModel( iProc, 
                     fLocationAcquisitions_.get( fLocationAcquisitions_.size() - 1 ),
-                                                        uniqueAcquisitionTitle_ );
+                                                        uniqueAcquisitionTitle_ );*/
             } catch (NoFiducialException ex) {
                 throw ex;
             } 
