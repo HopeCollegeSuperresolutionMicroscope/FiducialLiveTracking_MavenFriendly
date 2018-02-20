@@ -272,7 +272,7 @@
                         <configuration> 
                             <executable>java</executable>
                             <workingDirectory>${MMRunEnvironmentDir}</workingDirectory>
-                            <includeProjectDependencies>true</includeProjectDependencies>
+                            <!--<includeProjectDependencies>true</includeProjectDependencies>-->
                             <arguments>
                                 <argument>-classpath</argument>                                
                                 <argument>${MMRunEnvironmentDir}\mmplugins\Aquisition_Tools\Gaussian.jar;${MMRunEnvironmentDir}\ij.jar</argument>
@@ -485,6 +485,11 @@
             <groupId>edu.valelab</groupId>
             <artifactId>gaussianfit</artifactId>
             <version>1.4.22</version>
+        </dependency>
+        <dependency>
+            <groupId>com.opencsv</groupId>
+            <artifactId>opencsv</artifactId>
+            <version>4.1</version>
         </dependency>
     </dependencies>
 </project>
