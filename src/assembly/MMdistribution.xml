@@ -1,0 +1,34 @@
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/2.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.0.0 http://maven.apache.org/xsd/assembly-2.0.0.xsd">
+<!-- This Assembly is used to account for Micro-manager Source Code Dependencies.  This is because
+     the dependency loader in Micro-manager only searches the plugin directory when instantiating
+     new classes.  For the sake of error free code, we will include these source files.  TODO: remove
+     dependency on extending Micro-Manager classes.   -->
+    <id>MMdistribution</id>
+  <formats>
+    <format>jar</format>
+  </formats>
+  <includeBaseDirectory>false</includeBaseDirectory>
+  <dependencySets>
+    <dependencySet>
+      <outputDirectory>./</outputDirectory>
+      <includes>
+          <include>${project.groupId}:${project.artifactId}</include>
+          <include>edu.valelab:gaussianfit</include>
+      </includes>
+      <unpack>true</unpack>
+      <scope>runtime</scope>
+    </dependencySet>
+  </dependencySets>
+  <fileSets>
+      <fileSet>
+          <!-- May not be necessary, but will only allow for plugin loading in IJ menu as well -->
+          <directory>src/main/ijextra</directory>
+          <outputDirectory>./</outputDirectory>
+          <includes>
+              <include>plugins.config</include>
+          </includes>
+      </fileSet>
+  </fileSets>
+</assembly>

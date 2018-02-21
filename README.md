@@ -69,16 +69,14 @@ how to open the Project in regards to that IDE for new contributors.
         In each action tab set 
                     Execute Goals: process-classes install
                     Activate Profiles: [corresponding profile from above]
+                    (IMPORTANT) Set Properties: Delete all text, if not, runtime classpath loading will throw errors for almost all micro-manager plugins
+
         From NetBeans, when you select debug, micro-manager will wait until you select Debug->attach Debugger (set the port to the 
            debug.address value you specified in UserSystem.properties)
 
-      - [For Ease of Use in Netbeans] Using more than the Default Run and Debug Actions will require you to invoke the custom actions from submenus.
+      - [For Ease of Use in Netbeans] Using more than the Default Run and Debug Actions will require you to invoke custom actions from submenus.
         You can alternatively assign a custom button to another custom action that will invoke the above profile from the toolbar.
-        Please see this [Stackoverflow Link](https://stackoverflow.com/questions/9458928/invoking-actions-other-than-build-and-clean-build)
-
-      -[Alternative Netbeans setup] To use Default Run Tab in Project->Properties, select the micro-manager installation
-        directory as the working dir and set the main class to ij.ImageJ.  Under Actions, select Debug and you must 
-        explicitly specify the ij.jar path in the micro-manager installation in place of the %classpath argument.    
+        Please see this [Stackoverflow Link](https://stackoverflow.com/questions/9458928/invoking-actions-other-than-build-and-clean-build) 
 
       - If not in Netbeans, the command: mvn install -P [specific profile] should do either a debug or run operation.
         Recall that you must attach the debugger to the jvm you're running with the debug profile, since micro-manager

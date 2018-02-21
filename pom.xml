@@ -11,6 +11,7 @@
         <maven.compiler.target>1.6</maven.compiler.target>
         <!-- The PostFix for the ImageJ standalone distribution -->
         <distribution.name.ij>${project.build.finalName}-IJ_Standalone</distribution.name.ij>
+        <distribution.name.mm>${project.build.finalName}</distribution.name.mm>
     </properties>
     <profiles>       
         <profile>
@@ -92,7 +93,7 @@
                         <version>1.3.2</version>
                         <executions>
                             <execution>
-                                <id>testRun</id>
+                                <id>IJRun</id>
                                 <phase>install</phase>
                                 <goals>
                                     <goal>exec</goal>
@@ -192,7 +193,7 @@
                         <version>1.3.2</version>
                         <executions>
                             <execution>
-                                <id>testRun</id>
+                                <id>IJDebugRun</id>
                                 <phase>install</phase>
                                 <goals>
                                     <goal>exec</goal>
@@ -237,23 +238,54 @@
                             </execution>
                         </executions>
                     </plugin>
+                    <!-- Package a jar with any missing dependency into the Micromanager Plugin directory structure -->
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/assembly/MMdistribution.xml</descriptor>
+                            </descriptors>
+                            <outputDirectory>${project.build.directory}</outputDirectory>
+                            <!-- This currently makes it the same artifact, which means I need to split up the maven projects in the future -->
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <finalName>${distribution.name.mm}</finalName>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>make-assembly</id> 
+                                <phase>package</phase> 
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
                     <!-- Copy into mmplugins dir of the ApplicationDirectory to run -->
                     <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-jar-plugin</artifactId>
+                        <artifactId>maven-resources-plugin</artifactId>
                         <version>3.0.2</version>
                         <executions>
                             <execution>
-                                <id>copy-jar</id>
+                                <id>mm-jar-install</id>
+                                <phase>install</phase>
                                 <goals>
-                                    <goal>jar</goal>
+                                    <goal>copy-resources</goal>
                                 </goals>
-                                <configuration>
-                                    <outputDirectory>${MMRunEnvironmentDir}\mmplugins</outputDirectory>
-                                    <classifier>appRunTest</classifier>    
-                                </configuration> 
                             </execution>
                         </executions>
+                        <configuration>
+                            <outputDirectory>${MMRunEnvironmentDir}\mmplugins</outputDirectory>
+                            <resources>          
+                                <resource>
+                                    <directory>${project.build.directory}</directory>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>${distribution.name.mm}*</include>
+                                    </includes>
+                                </resource>
+                            </resources>              
+                        </configuration> 
                     </plugin>
                     <!-- Attempt to produce an Executable That Will Run The Debug for Maven -->
                     <plugin>
@@ -262,7 +294,7 @@
                         <version>1.3.2</version>
                         <executions>
                             <execution>
-                                <id>testRun</id>
+                                <id>MMRun</id>
                                 <phase>install</phase>
                                 <goals>
                                     <goal>exec</goal>
@@ -272,10 +304,9 @@
                         <configuration> 
                             <executable>java</executable>
                             <workingDirectory>${MMRunEnvironmentDir}</workingDirectory>
-                            <!--<includeProjectDependencies>true</includeProjectDependencies>-->
                             <arguments>
                                 <argument>-classpath</argument>                                
-                                <argument>${MMRunEnvironmentDir}\mmplugins\Aquisition_Tools\Gaussian.jar;${MMRunEnvironmentDir}\ij.jar</argument>
+                                <argument>${MMRunEnvironmentDir}\ij.jar</argument>
                                 <argument>ij.ImageJ</argument>
                             </arguments>
                         </configuration>                            
@@ -306,24 +337,54 @@
                             </execution>
                         </executions>
                     </plugin>
+                    <!-- Package a jar with any missing dependency into the Micromanager Plugin directory structure -->
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/assembly/MMdistribution.xml</descriptor>
+                            </descriptors>
+                            <outputDirectory>${project.build.directory}</outputDirectory>
+                            <!-- This currently makes it the same artifact, which means I need to split up the maven projects in the future -->
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <finalName>${distribution.name.mm}</finalName>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>make-assembly</id> 
+                                <phase>package</phase> 
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
                     <!-- Copy into mmplugins dir of the ApplicationDirectory to run -->
                     <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-jar-plugin</artifactId>
+                        <artifactId>maven-resources-plugin</artifactId>
                         <version>3.0.2</version>
                         <executions>
                             <execution>
-                                <id>copy-jar</id>
+                                <id>mm-jar-install</id>
+                                <phase>install</phase>
                                 <goals>
-                                    <goal>jar</goal>
+                                    <goal>copy-resources</goal>
                                 </goals>
-                                <configuration>
-                                    <outputDirectory>${MMRunEnvironmentDir}\mmplugins</outputDirectory>
-                                    <!-- Appends underscore for ImageJ standard -->
-                                    <classifier>appRunTest</classifier>    
-                                </configuration> 
                             </execution>
                         </executions>
+                        <configuration>
+                            <outputDirectory>${MMRunEnvironmentDir}\mmplugins</outputDirectory>
+                            <resources>          
+                                <resource>
+                                    <directory>${project.build.directory}</directory>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>${distribution.name.mm}*</include>
+                                    </includes>
+                                </resource>
+                            </resources>              
+                        </configuration> 
                     </plugin>
                     <!-- Attempt to produce an Executable That Will Run The Debug for Maven -->
                     <plugin>
@@ -332,7 +393,7 @@
                         <version>1.3.2</version>
                         <executions>
                             <execution>
-                                <id>testRun</id>
+                                <id>MMDebugRun</id>
                                 <phase>install</phase>
                                 <goals>
                                     <goal>exec</goal>
@@ -346,7 +407,7 @@
                                 <argument>-Xdebug</argument>
                                 <argument>-Xrunjdwp:transport=dt_socket,server=y,address=${debug.address},suspend=y</argument>
                                 <argument>-classpath</argument>                                
-                                <argument>${MMRunEnvironmentDir}\mmplugins\Aquisition_Tools\Gaussian.jar;${MMRunEnvironmentDir}\ij.jar</argument>
+                                <argument>${MMRunEnvironmentDir}\ij.jar</argument>
                                 <argument>ij.ImageJ</argument>
                             </arguments>
                         </configuration>                            

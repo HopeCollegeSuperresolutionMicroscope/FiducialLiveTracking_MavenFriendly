@@ -86,7 +86,11 @@ public class ImageViewController implements ModelUpdateListener {
         }
         
         //add the ROI For the Current Selectable One
-        imgWin_.getImagePlus().setRoi( fLocationModel_.getSelectedFiducialArea().getSelectionArea() );
+        FiducialArea selected = fLocationModel_.getSelectedFiducialArea();
+        //Necessary filtering for the sake of an overzelous deletion operation or lazy initialization
+        if( selected != null ){
+            imgWin_.getImagePlus().setRoi( selected.getSelectionArea() );
+        }
     }
     
     void updateOverlayForFiducialArea( FiducialArea fArea ) {
