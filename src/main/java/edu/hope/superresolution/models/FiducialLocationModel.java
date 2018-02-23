@@ -266,8 +266,13 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         fAreaProcessor_ = fAreaProcessor;
     }
     
-    //Add a FiducialArea to the fiducialList_;
+    /**
+     * Adds a FiducialArea to the List of Fiducial Areas.
+     * 
+     * @param roi 
+     */
     public void addFiducialArea( Roi roi ) {
+        
         fiducialAreaList_.add( createFiducialArea( roi ) );
         dispatch( EVENT_ELEMENT_ADDED );        
     }
@@ -379,7 +384,7 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
     private void storeCurrentFiducialArea() {
         
         //To Make sure there was not an external Plug-in Manipulating ROIS
-        //This is not okay in OO world because The view should not have this burden
+        //This is not okay in MVC world because The view should not have this burden
         dispatch( EVENT_STORE_ROI_REQUEST );
         
         //Areas Should have been set via view/Controllers, null value means delete

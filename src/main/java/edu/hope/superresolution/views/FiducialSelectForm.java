@@ -36,6 +36,9 @@ import org.micromanager.utils.ReportingUtils;
 public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdateListener {
 
     private boolean WINDOW_OPEN = true;
+    //boolean for stopping nested event calls.  MVC needs rewrite, but this is a solution for current codebase
+    //@see isNestedEvent
+    private boolean firstNestedEvent_ = false;
     
     private final LiveTracking pluginInstance_;
     private FiducialLocationModel fLocationModel_ = null;  //Reference to fiducialLocationModel
@@ -481,49 +484,6 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
     }//GEN-LAST:event_addFiducialButActionPerformed
 
     /**
-     * When the list Selection Model changes selection states.  Used to Call Removals
-     * 
-     * @param evt 
-     */
-    private void fiducialAreaList_ValueChanged(javax.swing.event.ListSelectionEvent evt) {//GEN-FIRST:event_fiducialAreaList_ValueChanged
-
-        //We are only interested in final valueChanges currently
-        if( evt.getValueIsAdjusting() == false ) {
-            //Get The SelectionModel
-            ListSelectionModel lsm = fiducialAreaList_.getSelectionModel();
-
-            //General Selection Procedure in case we swith to multiple selection later
-            int min = lsm.getMinSelectionIndex();
-            int max = lsm.getMaxSelectionIndex();
-
-            //boolean since there's no guarantee of which index comes first
-            boolean prevRoiCleared = false;
-            
-            for (int i = min; i <= max; i++) {
-                //If selected and was not already selected
-                if ( lsm.isSelectedIndex(i)  /*&& !selectedFiducials_.contains(i) */ ) {
-            
-                    //Display ROIs
-                    //Enable Editing an area only if there's one
-                    if (min == max ) {
-                        //Select the new FiducialArea
-                       fLocationModel_.setSelectedFiducialArea(i);
-                    }
-                    else {  //Display All Other Selected Elements
-                        //For Later, Multi-Selection                  
-                    }
-                }
-                else if ( selectedFiducials_.contains(i) && prevRoiCleared ) {
-                    //Store the ROI as a value to be manipulated later and then clear it
-                    //Should do a DeSelect Operation Once we're using Multiple
-                    selectedFiducials_.remove(i);
-                }
-            }    
-        }
-
-    }//GEN-LAST:event_fiducialAreaList_ValueChanged
-
-    /**
      * When the remove button is clicked, removes the selected FiducialArea from 
      *  list model.
      * 
@@ -536,13 +496,14 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
         int min = lsm.getMinSelectionIndex();
         int max = lsm.getMaxSelectionIndex();
         
-        for( int i = min; i <= max; i++ ) {
+        for( int i = min; i <= max && i >=0; i++ ) {
             if( lsm.isSelectedIndex(i) ) {
                 removeModelFiducialElement(i);
                 selectedFiducials_.remove(i);
             }
         }
-        //Clear All Selections Listeners should be aware of this and account for it
+        
+        //Clear All Selections, Listeners will be updated for this and account for it
         lsm.clearSelection();
 
     }//GEN-LAST:event_removeFiducialButActionPerformed
@@ -657,13 +618,63 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
     }//GEN-LAST:event_jRadioButton3ActionPerformed
 
     /**
-     * Add A FiducialArea to the LocationModel. Further interactions occur as response 
-     * to a broadcast of an addition.
+     * When the list Selection Model changes selection states.  Used to Call Removals
+     * 
+     * @param evt 
+     */
+    private void fiducialAreaList_ValueChanged(javax.swing.event.ListSelectionEvent evt) {//GEN-FIRST:event_fiducialAreaList_ValueChanged
+
+        //We are only interested in final valueChanges currently
+        if( evt.getValueIsAdjusting() == false ) {
+            //Get The SelectionModel
+            ListSelectionModel lsm = fiducialAreaList_.getSelectionModel();
+
+            //General Selection Procedure in case we swith to multiple selection later
+            int min = lsm.getMinSelectionIndex();
+            int max = lsm.getMaxSelectionIndex();
+
+            //boolean since there's no guarantee of which index comes first
+            boolean prevRoiCleared = false;
+
+            for (int i = min; i <= max && i >=0; i++) {
+                //If selected and was not already selected
+                if ( lsm.isSelectedIndex(i)  /*&& !selectedFiducials_.contains(i) */ ) {
+
+                    //Display ROIs
+                    //Enable Editing an area only if there's one
+                    if (min == max ) {
+                        //Select the new FiducialArea
+                        fLocationModel_.setSelectedFiducialArea(i);
+                    }
+                    else {  //Display All Other Selected Elements
+                        //For Later, Multi-Selection
+                    }
+                }
+                else if ( selectedFiducials_.contains(i) && prevRoiCleared ) {
+                    //Store the ROI as a value to be manipulated later and then clear it
+                    //Should do a DeSelect Operation Once we're using Multiple
+                    selectedFiducials_.remove(i);
+                }
+            }
+        }
+    }//GEN-LAST:event_fiducialAreaList_ValueChanged
+
+    /**
+     * Add A FiducialArea to the LocationModel if the current Selected Fidcuial Model isn't a placeholder.
+     * Further interactions occur as response to an actual broadcast of an addition from the model.
      * 
      * @see #onModelFiducialElementAdd() 
      */
     private void addModelFiducialElement() {
-        fLocationModel_.addFiducialArea();
+        //Clean Up code to make sure we're not populating the fLocationModel with null value models
+        boolean unusedFiducialElement = false;
+        FiducialArea selFArea = fLocationModel_.getSelectedFiducialArea();
+        if( selFArea != null ) {
+            unusedFiducialElement = (selFArea.getSelectionArea() == null);
+        }
+        if( !unusedFiducialElement ) {
+            fLocationModel_.addFiducialArea();
+        }
     }
     
     /**
