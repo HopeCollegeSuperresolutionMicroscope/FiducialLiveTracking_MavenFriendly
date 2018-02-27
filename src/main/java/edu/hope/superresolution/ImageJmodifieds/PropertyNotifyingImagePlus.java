@@ -84,7 +84,7 @@ import java.util.Set;
  *       and ImageJ2 is not yet completely available, this class is a nice account for 
  *       the incredibly unreliable source Code and its interaction with Canvas and ImageWindow.
  * 
- * @author Desig
+ * @author Justin Hanselman
  */
 public class PropertyNotifyingImagePlus extends ImagePlus {
 
