@@ -271,7 +271,12 @@ public class ImageViewController implements ModelUpdateListener {
         
         if( !roiIsSameAsRecent( roi ) ) {
             fLocationModel_.setCurrentFiducialAreaRegion( roi );
-            recentRoi_ = (Roi) roi.clone();
+            if( roi != null ) {
+                //Decouple roi from other imagePluses
+                recentRoi_ = (Roi) roi.clone();
+            } else {
+                recentRoi_ = roi;
+            }
         }
         
     }

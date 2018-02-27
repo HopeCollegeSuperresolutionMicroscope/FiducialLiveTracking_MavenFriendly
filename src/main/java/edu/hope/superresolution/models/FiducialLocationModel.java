@@ -5,6 +5,7 @@
  */
 package edu.hope.superresolution.models;
 
+import com.google.common.eventbus.Subscribe;
 import edu.hope.superresolution.MMgaussianfitmods.datasubs.BoundedSpotData;
 import edu.hope.superresolution.MMgaussianfitmods.datasubs.ExtendedGaussianInfo;
 import edu.hope.superresolution.Utils.CopyUtils;
@@ -41,9 +42,11 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
     public static final int EVENT_ELEMENT_MOD_FAILED = 4;
     public static final int EVENT_STORE_ROI_REQUEST = 5;
     public static final int EVENT_FIDUCIAL_AREA_DATA_CHANGED = 6;
-    public static final int EVENT_SHOW_ALL = 7;
-    public static final int EVENT_SHOW_CURRENT = 8;
-    public static final int EVENT_FIDUCIAL_BOX_DISPLAY_CHANGE = 9;
+    public static final int EVENT_FIDUCIAL_SELECTION_CHANGED = 7;
+    public static final int EVENT_FIDCUIAL_REGION_CHANGED = 8;
+    public static final int EVENT_SHOW_ALL = 9;
+    public static final int EVENT_SHOW_CURRENT = 10;
+    public static final int EVENT_FIDUCIAL_BOX_DISPLAY_CHANGE = 11;
     
     //Display Constants
     //Command Strings for Display Box Modes
@@ -65,7 +68,7 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
     private double avgAbsoluteYPixelTranslation_ = 0;
     
     private final List<FiducialArea> fiducialAreaList_ = Collections.synchronizedList( new ArrayList< FiducialArea >() );  //List of Selected Areas
-    private final FiducialChangeObserver fChangeObserver_ = new FiducialChangeObserver();
+    private final FiducialAreaCallback fAreaCallBack_ = new FiducialAreaCallback();
     private FiducialArea selectedFiducialArea_ = null;
     private int selectedAreaIndex_ = -1;
     private Roi currentRoi_ = null;  //placeholder for when there are no List Selections but an ROI
@@ -215,7 +218,7 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
             avgXTranslate += diff.xDiffs_;
             avgYTranslate += diff.yDiffs_;
             //Add Change Observer so that the area will register
-            fArea.addObserver( fChangeObserver_ );
+            fArea.RegisterToStateEventBus(fAreaCallBack_);
             try {
                 fArea.setSelectedSpotRaw( diff.spotRef_ );
             }
@@ -308,7 +311,7 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
     
     private FiducialArea createFiducialArea( Roi roi ) {
         FiducialArea newFArea = new FiducialArea( ip_, roi, fAreaProcessor_ );
-        newFArea.addObserver( fChangeObserver_ );
+        newFArea.RegisterToStateEventBus(fAreaCallBack_);
         return newFArea;
     }
     
@@ -437,23 +440,6 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
     
     public BoxDisplayTypes getDisplayBoxMode( ) {
         return boxDisplayMode_;
-    }
-
-    /**
-     * Local Helper Class to pass along broadcasts if the Fiducial Area Changes
-     * 
-     */
-    public class FiducialChangeObserver implements Observer {
-
-        @Override
-        public void update(Observable o, Object arg) {
-            //Try Cast to FiducialArea in case of other objects
-            if (o instanceof FiducialArea) {
-                //Should be used for redraws or other UI updates on data
-                dispatch(EVENT_FIDUCIAL_AREA_DATA_CHANGED);
-            }
-        }
-        
     }
     
     /**
@@ -614,5 +600,60 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
      */
     public double getAvgAbsoluteYPixelTranslation() {
         return avgAbsoluteYPixelTranslation_;
+    }
+    
+    /**
+     * FiducialArea State Listener Callback Class
+     * <p>
+     * Implemented as inner class to avoid constructor initialization issues that may arise with registration
+     */
+    private class FiducialAreaCallback {
+
+        /**
+         * Callback for handling when a selectedFiducialArea Has Changed
+         * <p>
+         * TODO: Change internals to dispatch StateBroadcaster instead of
+         * current Observer Paradigm TODO: See if Async Callback is more
+         * appropriate
+         *
+         * @param evt
+         */
+        @Subscribe
+        public void onSelectedFiducialChanged(FiducialArea.SelectedFiducialChangeEvent evt) {
+            //Should be reworked, but currently just call update for listeners
+            dispatch(EVENT_FIDUCIAL_AREA_DATA_CHANGED);
+        }
+
+        /**
+         * Callback for handling when a FiducialArea's Search Reagion Has
+         * Changed
+         * <p>
+         * TODO: Change internals to dispatch StateBroadcaster instead of
+         * current Observer Paradigm TODO: See if Async Callback is more
+         * appropriate
+         *
+         * @param evt
+         */
+        @Subscribe
+        public void onFAreaSearchRegionChanged(FiducialArea.RoiChangeEvent evt) {
+            //Should be reworked, but currently just call update for listeners
+            dispatch(EVENT_FIDCUIAL_REGION_CHANGED);
+        }
+
+        /**
+         * Callback for handling when a FiducialArea's Possible Fiducials List
+         * Has Changed
+         * <p>
+         * TODO: Change internals to dispatch StateBroadcaster instead of
+         * current Observer Paradigm TODO: See if Async Callback is more
+         * appropriate
+         *
+         * @param evt
+         */
+        @Subscribe
+        public void onSelectedFiducialChanged(FiducialArea.SpotSearchRepopulatedEvent evt) {
+            //Should be reworked, but currently just call update for listeners
+            dispatch(EVENT_FIDUCIAL_SELECTION_CHANGED);
+        }
     }
 }
