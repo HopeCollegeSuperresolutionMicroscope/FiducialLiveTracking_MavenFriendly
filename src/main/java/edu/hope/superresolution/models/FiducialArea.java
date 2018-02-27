@@ -5,6 +5,7 @@
  */
 package edu.hope.superresolution.models;
 
+import com.google.common.eventbus.EventBus;
 import edu.hope.superresolution.MMgaussianfitmods.datasubs.BoundedSpotData;
 import edu.hope.superresolution.MMgaussianfitmods.datasubs.ExtendedGaussianInfo;
 import edu.hope.superresolution.Utils.IJMMReportingUtils;
@@ -17,6 +18,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Observable;
 import edu.hope.superresolution.genericstructures.ListCallback;
+import edu.hope.superresolution.genericstructures.MasterSpecificEvent;
+import edu.hope.superresolution.genericstructures.StateBroadcaster;
 import edu.hope.superresolution.processors.FiducialAreaProcessor;
 import edu.valelab.gaussianfit.data.SpotData;
 import ij.ImagePlus;
@@ -31,7 +34,201 @@ import org.micromanager.utils.ReportingUtils;
  * 
  * @author Microscope
  */
-public class FiducialArea extends Observable {
+public class FiducialArea extends StateBroadcaster {    
+    
+    
+     /**
+     * Event Class - The Roi that this FiducialArea is searching has changed
+     * 
+     */
+    public static class RoiChangeEvent extends MasterSpecificEvent {
+        
+        private final Roi prevRoi_;
+        private final Roi curRoi_;
+        
+         /**
+         * Constructor
+         * 
+         * @param originator - originating instance for Roi change
+         * @param prevRoi - The previous Roi of the ImagePlus
+         * @param curRoi - The current Roi of the ImagePlus
+         */
+        public RoiChangeEvent( FiducialArea originator, Roi prevRoi, Roi curRoi ) {
+            super(originator);
+
+            prevRoi_ = prevRoi;
+            curRoi_ = curRoi;
+
+        }
+        
+        /**
+         * Originator Copy (superclass) Constructor
+         * 
+         * Takes An event and uses its Originator_ only.
+         * 
+         * @param originatorSource - The Event that already has an Originator to copy into this instance
+         * @param prevRoi - The previous Roi of the ImagePlus
+         * @param curRoi - The current Roi of the ImagePlus
+         */
+        public RoiChangeEvent( RoiChangeEvent originatorSource, Roi prevRoi, Roi curRoi ) {
+            super( originatorSource );  //Copy Constructor for Super
+            
+            prevRoi_ = prevRoi;
+            curRoi_ = curRoi;
+            
+        }
+        
+        public Roi getPreviousRoi() {
+            return prevRoi_;
+        }
+        
+        public Roi getCurrentRoi() {
+            return curRoi_;
+        }
+
+        /**
+         * Combine this event with the other.  Assumes this event is the earliest,
+         * so keeps its previous and takes the current from the event.
+         * 
+         * @param event - the More Recent Event compared to this
+         * @return New RoiChangedEvent object with prevTitle from this and curTitle from the parameter
+         */
+        @Override
+        public MasterSpecificEvent concatenate(MasterSpecificEvent event) {
+            //Make Sure This is the same Instance
+            if( !(event instanceof RoiChangeEvent ) ) {
+                throw new IllegalArgumentException( "Event To Concatenate is instanceof " + this.getClass().getName() );
+            } else if( !sameOriginator( event ) ) {
+                throw new IllegalArgumentException( "Attempting to Concatenate Events from two Seperate Originators");
+            }
+            
+            RoiChangeEvent upCast = (RoiChangeEvent) event;
+            return new RoiChangeEvent( upCast, prevRoi_, upCast.getCurrentRoi() );
+        }
+        
+    }
+    
+    /**
+     * Event Class - LightWeight Class that only provides an indication that a spot
+     * search was performed and a handle to the originating FiducialArea
+     * 
+     * 
+     */
+    public static class SpotSearchRepopulatedEvent extends MasterSpecificEvent {
+        
+        //SubClass Level accessor
+        private final FiducialArea fArea_;
+        
+         /**
+         * Constructor
+         * 
+         * @param originator - originating FiducialArea instance that was searched
+         */
+        public SpotSearchRepopulatedEvent( FiducialArea originator ) {
+            super(originator);
+            fArea_ = originator;
+
+        }
+        
+        public FiducialArea getFiducialAreaSearched() {
+            return fArea_;
+        }
+
+        /**
+         * Since this is a non-ordered event, Concatenate simply returns the same event.
+         * <p>
+         * This still checks to make sure the same type of event was passed and by
+         * the same originator for the sake of any generalized Concatenate Usages in other code
+         * 
+         * @param event - the More Recent Event compared to this
+         * @return New RoiChangedEvent object with prevTitle from this and curTitle from the parameter
+         */
+        @Override
+        public MasterSpecificEvent concatenate(MasterSpecificEvent event) {
+            //Make Sure This is the same Instance
+            if( !(event instanceof SpotSearchRepopulatedEvent ) ) {
+                throw new IllegalArgumentException( "Event To Concatenate is instanceof " + this.getClass().getName() );
+            } else if( !sameOriginator( event ) ) {
+                throw new IllegalArgumentException( "Attempting to Concatenate Events from two Seperate Originators");
+            }
+            
+            return this;
+        }
+        
+    }
+    
+    /**
+     * Event Class - The Selected Fiducial from the set has changed
+     * 
+     */
+    public static class SelectedFiducialChangeEvent extends MasterSpecificEvent {
+        
+        private final BoundedSpotData prevSelected_;
+        private final BoundedSpotData curSelected_;
+        
+         /**
+         * Constructor
+         * 
+         * @param originator - originating instance for Roi change
+         * @param prevRoi - The previous Roi of the ImagePlus
+         * @param curRoi - The current Roi of the ImagePlus
+         */
+        public SelectedFiducialChangeEvent( FiducialArea originator, BoundedSpotData prevSelected, BoundedSpotData curSelected ) {
+            super(originator);
+
+            prevSelected_ = prevSelected;
+            curSelected_ = curSelected;
+
+        }
+        
+        /**
+         * Originator Copy (superclass) Constructor
+         * 
+         * Takes An event and uses its Originator_ only.
+         * 
+         * @param originatorSource - The Event that already has an Originator to copy into this instance
+         * @param prevSelected - The previous Selected Spot
+         * @param curSelected - The current Selected Spot
+         */
+        public SelectedFiducialChangeEvent( SelectedFiducialChangeEvent originatorSource, BoundedSpotData prevSelected, BoundedSpotData curSelected ) {
+            super( originatorSource );  //Copy Constructor for Super
+            
+            prevSelected_ = prevSelected;
+            curSelected_ = curSelected;
+            
+        }
+        
+        public BoundedSpotData getPreviousSelectedFiducialSpot() {
+            return prevSelected_;
+        }
+        
+        public BoundedSpotData getCurrentSelectedFiducialSpot() {
+            return curSelected_;
+        }
+
+        /**
+         * Combine this event with the other.  Assumes this event is the earliest,
+         * so keeps its previous and takes the current from the event.
+         * 
+         * @param event - the More Recent Event compared to this
+         * @return New RoiChangedEvent object with prevTitle from this and curTitle from the parameter
+         */
+        @Override
+        public MasterSpecificEvent concatenate(MasterSpecificEvent event) {
+            //Make Sure This is the same Instance
+            if( !(event instanceof SelectedFiducialChangeEvent ) ) {
+                throw new IllegalArgumentException( "Event To Concatenate is instanceof " + this.getClass().getName() );
+            } else if( !sameOriginator( event ) ) {
+                throw new IllegalArgumentException( "Attempting to Concatenate Events from two Seperate Originators");
+            }
+            
+            SelectedFiducialChangeEvent upCast = (SelectedFiducialChangeEvent) event;
+            return new SelectedFiducialChangeEvent( upCast, prevSelected_, upCast.getCurrentSelectedFiducialSpot());
+        }
+        
+    }
+    
+    
     
     //To Be Changed Later
     public Color DefaultColor = Color.yellow;
@@ -207,11 +404,17 @@ public class FiducialArea extends Observable {
         }
         
         setIsChanging(true);
-        
+        Roi prevRoi = null;
+        if( origSelectionArea_ != null ) {
+         prevRoi= (Roi) origSelectionArea_.clone();
+        } 
         //Don't Analyze if there are no bounds or roi is null (some MM area erasure)
         //  setOrigSearchArea_ to null for less queries on Bounds
         if( roi == null || roi.getFloatWidth() <= 0 || roi.getFloatHeight() <= 0 ) {
             origSelectionArea_ = null;
+            if( prevRoi != null ) {
+                dispatchEvent( new RoiChangeEvent( this, prevRoi, origSelectionArea_ ));
+            }
             setIsChanging(false);
             return false;
         }
@@ -219,12 +422,15 @@ public class FiducialArea extends Observable {
         setHasChanged(false);
         
         origSelectionArea_ = roi;
+        //Dispatch Roi Change Event
+        dispatchEvent( new RoiChangeEvent( this, prevRoi, origSelectionArea_ ) );
         boolean runProcess;
         
         imLock_.lock();
         try {
           //Gaussian Fit To fiducials
-          runProcess = fiducialAreaProcessor_.fitRoiForImagePlus( ip_, roi, new BoundedSpotListAction()  );       
+          //BoundedSpotListAction may be called in Constructor, but will act after items are populated (this should be mitigated)
+          runProcess = fiducialAreaProcessor_.fitRoiForImagePlus( ip_, roi, new BoundedSpotListAction(this)  );       
         } finally {
             imLock_.unlock();
         }
@@ -242,18 +448,7 @@ public class FiducialArea extends Observable {
     private void setHasChanged( boolean state ) {
         synchronized( changeLock_ ) {
             hasChanged_ = state;
-        }
-        
-        //Observer API should be integrated, but will keep separate 
-        //   due to hasChanged nature of indicating full List Changed
-        
-        if( state == true ) {
-            setChanged();
-        }
-        else {
-            clearChanged();
-        }
-       
+        }       
     }
     
     private void setIsChanging( boolean state ) {
@@ -277,27 +472,18 @@ public class FiducialArea extends Observable {
     
     //Takes a reference to a sychronized ArrayList of SpotData, fills and sorts sortedPossibleFiducials_
     //The selectedSpot_ is updated to the maximum spot and hasChanged_ is updated
+    /**
+     * Populates the List of sorted Possible Fiducials with the new list and selects a Fiducial
+     * that is either in the same area as the previous list, or is the first fiducial in the list.
+     * <p>
+     * Will clear the previous list.
+     * 
+     * @param list - A List of SpotData or BoundedSpotData, that is is pushed into sortedPossibleFiducial List
+     * @return - The number of spots that now are possible fiducials
+     */
     private int populateBoundedSpotList( List<SpotData> list ) {
         
-                
-        //Calculate the avgSigma and remove any outliers beyond 3 sigma
         SpotData spot;
-        
-        //Since We Assume Fiducials Are Diffraction Limited Emitters,
-        //  Apply A Limit To Any Widths That Are Found
-        //  Assuming that Defocus Occurs (2 * Minimum SpotWidth Accounts for Uniform Defocus and Double Spots
-        /*int idx = 0;
-        if (!list.isEmpty()) {
-            idx = 1;
-            Collections.sort(list, minWidthComparator_);
-            int listSize = list.size();
-            double maxWidth = list.get(0).getWidth() * 2;
-            while (idx < listSize && list.get(idx).getWidth() <= maxWidth) {
-                idx++;
-            }
-            ij.IJ.log("The Number of Over 2*Min Removed is:" + (listSize - idx) + " and Number Left is: " + idx);
-        }
-        ij.IJ.log( "Number of Actual Spots is: " + idx );*/
         
         //Add remaining Spots to sortedPossible Fiducials
         sortedPossibleFiducials_.clear();
@@ -317,7 +503,10 @@ public class FiducialArea extends Observable {
 
         //Set Selected Spot = null if we have to because there were no values returned
         if ( sortedPossibleFiducials_.isEmpty() ) {
-            selectedSpot_ = null;
+            if( selectedSpot_ != null ) {
+                dispatchEvent( new SelectedFiducialChangeEvent(this, selectedSpot_, null ) );
+                selectedSpot_ = null;
+            }
         } else {
             //Assumes the selectedSpot hasn't moved much or pick the max intensity
             BoundedSpotData found = null;
@@ -397,7 +586,8 @@ public class FiducialArea extends Observable {
         return maxIntensity_;
     }
     
-    /** Sets the Selected Spot From a Raw Reference Instead of guaranteeing a copy
+    /** 
+     * Sets the Selected Spot From a Raw Reference Instead of guaranteeing a copy
      * <p>
     *    Behavior - if the BoundedSpotData does not have isVirtual_ flag, it must be a reference contained in the list
     *                if isVirtual_ = true, it is set and added to the set until next set Operation, which replaces it
@@ -423,6 +613,8 @@ public class FiducialArea extends Observable {
                     sortedPossibleFiducials_.add( boundedSpotDataRef );
                 }
             }
+            //Create evt for notification
+            SelectedFiducialChangeEvent evt = new SelectedFiducialChangeEvent(this, selectedSpot_, boundedSpotDataRef);
             //This can probably be done by other callers, but it's nice to maintain the references
             if (selectedSpot_ != null) {
                 selectedSpot_.getBoundingBox().setStrokeColor(DefaultColor);
@@ -470,7 +662,10 @@ public class FiducialArea extends Observable {
                     IJMMReportingUtils.showError(  "Somehow A TrackRegion Could not"
                                                 + " create a spot to track" );
                 }
-            } 
+            }
+            
+            //Notify after all changes
+            dispatchEvent(evt);
         }
     }
     
@@ -617,6 +812,12 @@ public class FiducialArea extends Observable {
     //Runs of opposite Thread
     public class BoundedSpotListAction implements ListCallback<SpotData> {
 
+        private final FiducialArea refInstance_;
+        
+        public BoundedSpotListAction( FiducialArea refInstance ) {
+            refInstance_ = refInstance;
+        }
+        
         @Override
         public void onListFull( List<SpotData> list) {
             try {
@@ -629,7 +830,8 @@ public class FiducialArea extends Observable {
           setIsChanging(false);
           setHasChanged(true);
           
-          notifyObservers();
+          //Notify that the list has been populated
+          dispatchEvent( new SpotSearchRepopulatedEvent( refInstance_ ) );
                
         }
 
