@@ -675,7 +675,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         }
         else {
             //TEST THIS
-            //Should set the acquisitionName to null is this is non-acquisition (one-off)
+            //Should set the acquisitionName to null if this is non-acquisition (one-off)
             if( !app_.isAcquisitionRunning() ) {
                 currentAcqName_ = null;
             }
@@ -875,6 +875,12 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         
     }
     
+    /**
+     * Calculates the Sum of the independent Focus Score Uncertainties.
+     * 
+     * @param fLocModel -- The location model from which this may occur
+     * @return 
+     */
     private double calculateSumUncertainties( FiducialLocationModel fLocModel ) {
         
         List< FiducialArea > fiducials = fLocModel.getFiducialAreaList();
