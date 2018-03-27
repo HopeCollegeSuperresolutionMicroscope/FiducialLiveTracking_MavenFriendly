@@ -84,7 +84,7 @@ the src/3rdpartylib/ directory.
         You can alternatively assign a custom button to another custom action that will invoke the above profile from the toolbar.
         Please see this [Stackoverflow Link](https://stackoverflow.com/questions/9458928/invoking-actions-other-than-build-and-clean-build) 
 
-   * If not in Netbeans, the command: mvn install -P [specific profile] should do either a debug or run operation.
+   * If not in Netbeans, the command: mvn install -P {specific profile} should do either a debug or run operation.
         Recall that you must attach the debugger to the jvm you're running with the debug profile, since micro-manager
         will block on a listener.
 
