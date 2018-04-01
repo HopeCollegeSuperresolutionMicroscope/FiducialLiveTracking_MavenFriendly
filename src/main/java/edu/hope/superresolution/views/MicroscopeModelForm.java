@@ -13,7 +13,7 @@ import java.util.prefs.Preferences;
 
 /**
  *
- * @author Desig
+ * @author Justin Hanselman
  */
 public class MicroscopeModelForm extends javax.swing.JFrame implements ModelUpdateListener {
 

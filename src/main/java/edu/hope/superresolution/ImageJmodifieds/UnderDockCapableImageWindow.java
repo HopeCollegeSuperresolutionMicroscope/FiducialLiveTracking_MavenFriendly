@@ -36,7 +36,7 @@ import org.micromanager.utils.CanvasPaintPending;
  * <p>
  * TODO: This should allow more than just underneath docking but the ImageLayout is very inflexible
  * 
- * @author Desig
+ * @author Justin Hanselman
  */
 public class UnderDockCapableImageWindow extends ImageWindow {
     

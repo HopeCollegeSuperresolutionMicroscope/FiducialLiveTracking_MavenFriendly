@@ -46,7 +46,7 @@ import org.jfree.ui.TextAnchor;
  * <p>
  *   Additional functions: A Gaussian Background term that is squared to prevent negative background.
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class AdditionalGaussianUtils {
 

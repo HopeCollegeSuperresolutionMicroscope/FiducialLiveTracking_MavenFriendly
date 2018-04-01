@@ -22,7 +22,7 @@ import com.google.common.eventbus.EventBus;
  * and SUPER instance heavy applications.
  * TODO: extending to AbstractClasses for Event Queue dispatching for better utility
  * 
- * @author HanseltimeIndustries
+ * @author Justin Hanselman
  */
 public abstract class StateBroadcaster {
 

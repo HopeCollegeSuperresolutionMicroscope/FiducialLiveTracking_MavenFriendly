@@ -16,7 +16,7 @@ import net.miginfocom.swing.MigLayout;
  * General Class that Allows for docking extra panels into an ImageWindow.  This provides bette
  * UI and portability, by providing Docks to the East, West, and South of the main ImageWindow Canvas.
  * 
- * @author Desig
+ * @author Justin Hanselman
  */
 public class DockCapableImageWindow extends ImageWindow {
     

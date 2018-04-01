@@ -26,7 +26,7 @@ import javax.swing.JOptionPane;
 /**
  *
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class GaussianFitProcessor extends FiducialAreaProcessor {
     

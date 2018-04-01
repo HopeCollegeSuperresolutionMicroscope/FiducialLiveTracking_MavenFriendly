@@ -34,7 +34,7 @@ import org.micromanager.utils.ReportingUtils;
  * <p>
  *  Minimum Method Call Sequence: Constructor(), registerModelUpdateListener()
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdateListener {
 

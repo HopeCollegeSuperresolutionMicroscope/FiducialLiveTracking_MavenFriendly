@@ -16,7 +16,7 @@ import net.miginfocom.swing.MigLayout;
 
 /**
  *
- * @author Desig
+ * @author Justin Hanselman
  */
 public class TestSliceInfoDisplayPanel extends ImPlusListenerDockablePanel {
     

@@ -7,7 +7,7 @@ package edu.hope.superresolution.genericstructures;
 
 /**
  *
- * @author Microscope
+ * @author Justin Hanselman
  */
 public interface FitThreadCallback< T > extends ListCallback< T > {
     

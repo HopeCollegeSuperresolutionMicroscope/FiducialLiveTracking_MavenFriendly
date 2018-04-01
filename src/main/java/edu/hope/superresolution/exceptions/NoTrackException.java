@@ -7,7 +7,7 @@ package edu.hope.superresolution.exceptions;
 
 /**
  *
- * @author Owner
+ * @author Justin Hanselman
  */
 public class NoTrackException extends RuntimeException {
     

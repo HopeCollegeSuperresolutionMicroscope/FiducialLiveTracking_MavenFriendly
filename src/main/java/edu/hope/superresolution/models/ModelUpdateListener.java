@@ -25,7 +25,7 @@ package edu.hope.superresolution.models;
  * 
  * @see edu.hope.superresolution.models.ModelUpdateDispatcher
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public interface ModelUpdateListener {
     

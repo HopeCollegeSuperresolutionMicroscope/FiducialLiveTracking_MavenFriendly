@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  *
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class FiducialMoveFinder {
            

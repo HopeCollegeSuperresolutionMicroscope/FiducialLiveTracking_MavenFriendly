@@ -45,7 +45,7 @@ import org.micromanager.utils.ReportingUtils;
 
 /**
  *
- * @author Desig
+ * @author Justin Hanselman
  */
 public class TestImageWindowCombinations extends StackWindow {
     

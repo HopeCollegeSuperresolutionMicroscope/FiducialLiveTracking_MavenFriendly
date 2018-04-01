@@ -8,7 +8,7 @@ package edu.hope.superresolution.ImageJmodifieds;
 /**
  * Interface for a subscriber that will contains methods to subscribe and unsubscribe from a PropertyNotifyingImagePlus.
  * 
- * @author Desig
+ * @author Justin Hanselman
  */
 interface IPropImPlusSelfSubscriber {
     

@@ -32,7 +32,7 @@ import org.micromanager.utils.ReportingUtils;
  * Container of Information pertaining to a user-selected area in a image area, 
  * in which a a user selected fiducial is contained
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class FiducialArea extends StateBroadcaster {    
     

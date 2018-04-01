@@ -17,7 +17,7 @@ import org.micromanager.utils.ReportingUtils;
  *  Wrapper Class Used for determining if Micro-manager Logging Utils should be used or ImageJ
  *  TODO: should be scaled to be comprehensive for ImageJ.
  * 
- * @author Owner
+ * @author Justin Hanselman
  */
 public class IJMMReportingUtils {
 

@@ -9,7 +9,7 @@ import ij.gui.Roi;
 
 /**
  *
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class NoFiducialException extends RuntimeException {
     

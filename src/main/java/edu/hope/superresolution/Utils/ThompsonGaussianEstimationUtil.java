@@ -12,7 +12,7 @@ package edu.hope.superresolution.Utils;
  *   further equations later on.
  * 
  * @see  <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC1302065/pdf/11964263.pdf"> Thompson Paper</a>
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class ThompsonGaussianEstimationUtil {
     

@@ -14,7 +14,7 @@ import java.util.List;
      realMatchRatio_  the percentage( out of 1 ) of matches to the Fiducial Area Set
      maxSpotMatches_ the max number (denominator for percentage calculation)
  *
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class TravelMatchCase {
     

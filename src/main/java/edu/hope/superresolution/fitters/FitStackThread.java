@@ -38,7 +38,7 @@ import java.util.concurrent.BlockingQueue;
  * @see edu.valelab.gaussianfit.GaussianFitStackThread
  * @see edu.hope.superresolution.fitters.FitProcess
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public abstract class FitStackThread extends GaussianInfo implements Runnable {
 

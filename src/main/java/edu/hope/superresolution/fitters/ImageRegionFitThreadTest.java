@@ -48,7 +48,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * </pre> 
  * 
  *
- * @author Microscope
+ * @author Justin Hanselman
  */
 abstract public class ImageRegionFitThreadTest extends ExtendedGaussianInfo implements Runnable {
     

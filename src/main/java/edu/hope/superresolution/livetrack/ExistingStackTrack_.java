@@ -21,7 +21,7 @@ import org.micromanager.utils.MMException;
 
 /**
  *
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class ExistingStackTrack_ implements PlugInFilter {
 

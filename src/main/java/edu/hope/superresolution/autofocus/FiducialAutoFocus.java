@@ -50,7 +50,7 @@ import org.micromanager.utils.MMScriptException;
 
 /**
  *
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
 

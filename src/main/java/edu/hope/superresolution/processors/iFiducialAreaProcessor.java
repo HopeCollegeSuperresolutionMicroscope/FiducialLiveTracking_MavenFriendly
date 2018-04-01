@@ -14,7 +14,7 @@ import ij.ImagePlus;
 
 /**
  *
- * @author Microscope
+ * @author Justin Hanselman
  */
 public interface iFiducialAreaProcessor {
     

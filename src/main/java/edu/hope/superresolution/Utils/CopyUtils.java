@@ -13,7 +13,7 @@ import java.lang.reflect.InvocationTargetException;
  *  Static Utility Class that Provides Interaction with Copy-Constructor Patterned Objects
  * 
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class CopyUtils {
     

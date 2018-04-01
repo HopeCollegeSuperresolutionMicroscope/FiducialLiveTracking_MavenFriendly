@@ -23,7 +23,7 @@ import org.micromanager.api.IAcquisitionEngine2010;
  *  An awt.Panel for Insertion into an ImageWindow that displays the Data from the corresponding 
  *  1-based index for Fiducial Models from a LocationAcquisitionModel
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
     public class FiducialModelFocusEdgesSelection extends ImPlusListenerDockablePanel {
 

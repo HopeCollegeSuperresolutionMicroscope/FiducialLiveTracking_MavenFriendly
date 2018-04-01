@@ -25,7 +25,7 @@ import java.util.logging.Logger;
 
 /**
  *
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class ImageViewController implements ModelUpdateListener {
     

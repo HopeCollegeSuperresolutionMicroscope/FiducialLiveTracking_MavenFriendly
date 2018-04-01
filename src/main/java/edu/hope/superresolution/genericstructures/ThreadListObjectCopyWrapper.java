@@ -14,7 +14,7 @@ import java.util.concurrent.locks.ReentrantLock;
  *    This Class Provided index Information as well as a separated Object from the List
  *    This Class may be used for Lists of Non-Thread Safe Objects
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class ThreadListObjectCopyWrapper<T> {
     

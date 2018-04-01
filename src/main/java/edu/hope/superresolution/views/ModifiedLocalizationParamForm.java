@@ -40,7 +40,7 @@ import java.util.logging.Logger;
 
 /**
  *
- * @author nico
+ * @author nico (modified by Justin Hanselman)
  */
 public class ModifiedLocalizationParamForm extends javax.swing.JFrame implements ModelUpdateListener {
    private static final String NOISETOLERANCE = "NoiseTolerance";

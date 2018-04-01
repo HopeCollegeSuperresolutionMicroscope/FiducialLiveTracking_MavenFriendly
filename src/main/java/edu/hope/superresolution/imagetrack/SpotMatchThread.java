@@ -39,7 +39,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <p> 
  *  TODO: Evaluate More Correlative Methods For weeding out Fits.
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class SpotMatchThread implements Runnable {
 

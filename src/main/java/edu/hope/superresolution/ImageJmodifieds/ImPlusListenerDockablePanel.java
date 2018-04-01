@@ -13,7 +13,7 @@ import java.awt.Panel;
  *<p>
  * Currently Just Abstract Categorization For Differentiation of IPropImPlusSelfSubscriber and a Panel Implementing it.
  * 
- * @author Desig
+ * @author Justin Hanselman
  */
 public abstract class ImPlusListenerDockablePanel extends Panel implements IPropImPlusSelfSubscriber {
     

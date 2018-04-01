@@ -17,7 +17,7 @@ import org.micromanager.utils.ReportingUtils;
 
 /**
  *
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class GaussianWithDefocusFitStackThread extends FitStackThread {
 

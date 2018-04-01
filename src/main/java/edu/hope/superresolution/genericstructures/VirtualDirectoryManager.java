@@ -18,7 +18,7 @@ import java.util.logging.Logger;
  * Temporary Directory On Initialization.  Instances set to a real directory will
  * switch all resources over to the new Directory.
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class VirtualDirectoryManager {
     

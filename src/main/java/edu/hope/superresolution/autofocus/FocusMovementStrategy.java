@@ -11,7 +11,7 @@ package edu.hope.superresolution.autofocus;
  *   important with low cost adapter solutions.  Such as qualitative upward focus with
  *   a limiting threshold.
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public interface FocusMovementStrategy {
         

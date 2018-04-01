@@ -16,7 +16,7 @@ import java.util.ArrayList;
  * that are defined in the extending class to those listeners, and enable or disable 
  * the guiElements of the listeners.
  *
- * @author Microscope
+ * @author Justin Hanselman
  */
 public abstract class ModelUpdateDispatcher {
     

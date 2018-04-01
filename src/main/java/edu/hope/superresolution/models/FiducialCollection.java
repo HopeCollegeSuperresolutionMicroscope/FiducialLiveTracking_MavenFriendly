@@ -11,7 +11,7 @@ import edu.hope.superresolution.processors.FiducialAreaProcessor;
  *  Super Class For Objects Planning on operating on Fiducial Collections
  *   Sets a standard Fit and Track Object for the entire collection
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public interface FiducialCollection {
     

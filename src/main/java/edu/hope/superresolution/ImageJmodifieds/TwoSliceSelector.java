@@ -11,7 +11,7 @@ package edu.hope.superresolution.ImageJmodifieds;
  * passed in by a model or calling context to affect the context's variables based on the 
  * assumption of the slices collected.
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public interface TwoSliceSelector {
     

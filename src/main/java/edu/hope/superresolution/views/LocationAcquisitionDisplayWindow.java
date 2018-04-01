@@ -19,7 +19,7 @@ import java.util.logging.Logger;
 
 /**
  *
- * @author Desig
+ * @author Justin Hanselman
  */
 public class LocationAcquisitionDisplayWindow extends UnderDockCapableStackImageWindow {
    

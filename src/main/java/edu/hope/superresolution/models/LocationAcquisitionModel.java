@@ -43,7 +43,7 @@ import org.micromanager.utils.MMException;
  * As the Top level Model, this creates and links views to selectedAcquisitionLocations_
  *   Additionally, this model itself may be linked to view that are created in the calling context (plugin)
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class LocationAcquisitionModel {
     
