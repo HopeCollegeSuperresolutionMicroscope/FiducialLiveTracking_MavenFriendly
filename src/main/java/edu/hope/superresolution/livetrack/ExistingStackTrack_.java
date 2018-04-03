@@ -5,6 +5,7 @@
  */
 package edu.hope.superresolution.livetrack;
 
+import com.opencsv.CSVWriter;
 import edu.hope.superresolution.Utils.IJMMReportingUtils;
 import edu.hope.superresolution.autofocus.FiducialAutoFocus;
 import edu.hope.superresolution.exceptions.NoFiducialException;
@@ -13,8 +14,15 @@ import edu.hope.superresolution.models.LocationAcquisitionModel;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.gui.ImageWindow;
+import ij.io.FileInfo;
 import ij.plugin.filter.PlugInFilter;
 import ij.process.ImageProcessor;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import org.micromanager.utils.AutofocusManager;
 import org.micromanager.utils.MMException;
 
@@ -27,6 +35,8 @@ public class ExistingStackTrack_ implements PlugInFilter {
 
     private ImagePlus imp_;
     private LocationAcquisitionModel locAcq_;
+    
+    private final Map<Integer, Double> driftMap_ = new HashMap<Integer, Double>();
     
     @Override
     public int setup(String arg, ImagePlus imp) {
@@ -50,22 +60,31 @@ public class ExistingStackTrack_ implements PlugInFilter {
         //This One Assumes a stackImagePlus
         LocationAcquisitionModel.AcquisitionSubmitAction trackAction = new LocationAcquisitionModel.AcquisitionSubmitAction() {
             
+            //We currently assume that this is a set of all tracked fiducials
             @Override
             public void submitResponse( ) {
                 //For the sake of simplicity, we assume we track all slices
                 //Workaround to determine stackDepth
                 int stackSize = imp_.getImageStackSize();
-
+                //TODO:  Finalize
+                //List<fModel> trackList = new LinkedList<Integer>();
                 for( int i = 1; i <= stackSize; i++ ) {
                     imp_.setSlice(i);
                     try {
+                        //This will currently only register tracked fiducials
                         FiducialLocationModel fModel = locAcq_.pushNextFiducialLocationModel(imp_.getProcessor(), true);
+                        driftMap_.put(i, fModel.getAvgAbsoluteXPixelTranslation()); //This needs to be abstracted
                     } catch(NoFiducialException ex) {
                         IJMMReportingUtils.showError("Could Not Find a Fiducial!");
                         
                     }
                     
                 }
+                
+                //This is a post-process operation, since we really want to verify any changes in the future
+                
+                
+                
             } 
         };
        
@@ -84,6 +103,20 @@ public class ExistingStackTrack_ implements PlugInFilter {
         //This may be statically interrupted if we'd like to do it?
     }
 
-        
+    //To Be relocated to a file
+    private void storeAbsoluteDriftFile( ) {
+        ImagePlus ip = new ImagePlus();
+        FileInfo fi = ip.getOriginalFileInfo();
+        String fullPath = fi.directory + "\\" + fi.fileName;
+        try {
+        CSVWriter writer = new CSVWriter( new FileWriter( fullPath ) );
+            //WRITE ALL DATA TO CSV
+            
+        } catch (IOException ex )     
+        {
+            //Should Prompt for new save as well (TODO)
+            IJMMReportingUtils.showError(ex);
+        }
+    }
     
 }
