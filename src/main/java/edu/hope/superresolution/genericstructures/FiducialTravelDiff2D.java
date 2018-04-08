@@ -27,7 +27,13 @@ public class FiducialTravelDiff2D {
         public double xDiffs_;  //Difference In X coordinates (nm)
         public double yDiffs_;  //Difference in Y Coordinates (nm)
         public double intRatio_;  
+        /**
+         * The Uncertainty in the X Travel (TODO: Change from simple linear combination of uncertainties for tighter tolerances)
+         */
         public double xUncertainty_;
+        /**
+         * The Uncertainty in the Y Travel (TODO: Change from simple linear combination of uncertainties for tighter tolerances)
+         */
         public double yUncertainty_;
         //Uncertainty to account for the fact that Gaussian Fits are constrainted to Rayleigh Criteria
         //These currently are AbbeLimit of reference focus plane spot + sigma in each direction for two spots
@@ -61,8 +67,10 @@ public class FiducialTravelDiff2D {
             double assumedAbbeSpot;
             //To Generalize for Non-Copy (non-existent) case
             if( areaOwnerRef.getFocusPlaneSigmaRef() <=0 ) {
+                //Sigma of Gaussian * 2
                 assumedAbbeSpot = prevSpot_.getWidth()/2;
             } else {
+                //Sigma * 2
                 assumedAbbeSpot = areaOwnerRef.getFocusPlaneSigmaRef() * 2;
             }
             
@@ -114,7 +122,7 @@ public class FiducialTravelDiff2D {
             zDistanceUncertainty_ = diffModel.zDistanceUncertainty_;
         }
         
-        /*Static Function that provides Function-hinted Access to private Modified Copy constructor
+        /**Static Function that provides Function-hinted Access to private Modified Copy constructor
         *  Creates a FiducialTravelDiff2D with an average difference to a Virtual Spot
         *  @param diffModel - The FiducialTravelDiff2D whose average Values we want to replicate
         *  @param toShiftSpotModel - BoundedSpot that will be copied and modified to simulate it having moved according to diffModel
