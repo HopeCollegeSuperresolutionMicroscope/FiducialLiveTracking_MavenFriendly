@@ -340,11 +340,25 @@ public class FiducialArea extends StateBroadcaster {
 
     }
     
+    /**
+     * Returns the number of times that this Fiducial Area has been tracking a virtual (undetected particle).
+     * This results from use of the Implied Track Constructor, since there is a potential for a fiducial area
+     * to have a missing fiducial but to track with th set of fiducials.  If the particle is rediscovered in 
+     * this FiducialArea, the VirtualFrameNumber will be reset to 0.  
+     * 
+     * @return 
+     * @see FiducialArea##FiducialArea(ij.ImagePlus, ij.gui.Roi, edu.hope.superresolution.models.FiducialArea) 
+     */
     public int getVirtualFrameTrackNumber() {
         return virtualFrameTrackNumber_;
     }
     
-    
+    /**
+     * Gets the fiducialAreaProcessor that was used to populate the potential list of
+     * fiducial spots
+     * 
+     * @return 
+     */
     public FiducialAreaProcessor getFiducialAreaProcessor () {
         return fiducialAreaProcessor_;
     }
@@ -383,12 +397,23 @@ public class FiducialArea extends StateBroadcaster {
         
     }
     
-    //Used For GUI Selection interface
+    /**
+     * Get the area that was used to create the Fiducial Area.  This can be the User-
+     * drawn selection or, if this was just tracked, the track search area centered on the 
+     * previous selectedSpot
+     * 
+     * @return 
+     */
     public Roi getSelectionArea() {
         return origSelectionArea_;
     }
     
-    //Used For Selection Tracking (provides Uniform, centered Area to search)
+    /**
+     * Get the tracksearch Area.  This will be the anticipated travel area centered on the 
+     * selected spot (fiducial particle).
+     * 
+     * @return 
+     */
     public Roi getTrackSearchArea() {
         return trackSearchArea_;
     }
@@ -536,6 +561,10 @@ public class FiducialArea extends StateBroadcaster {
      * <p>
      *  The search looks for the center of spots in the list that are within the searchSpot Area Bounds only.
      *  Not area-over-area overlap.
+     * <p>
+     * Note: This is different from tracking across a set of Fiducial Areas.  This function is used for
+     * image refresh while selecting in live mode.  As long as no large movement occurs, this
+     * is a lightweight way of maintaining the selected Spot for the user.
      * 
      * @param searchSpot - the spot, whose position and size are to be correlated to the list
      * @return - The Bounded Spot closest to the center of the search spot or null if there's no overlap
@@ -564,6 +593,13 @@ public class FiducialArea extends StateBroadcaster {
         return minSpot;
     }
     
+    /**
+     * Gets a moderately protected accessor to the selectedSpot to what would otherwise be returned as a raw reference.
+     * <p>
+     * I got ambitious with this one, when learning about it.
+     * 
+     * @return 
+     */
     public CopySourceListReference<BoundedSpotData, FiducialArea> getSelectedSpot( ) {
         synchronized (spotLock_) {
             if (selectedSpot_ == null) {
@@ -574,14 +610,32 @@ public class FiducialArea extends StateBroadcaster {
         }
     }
     
+    
+   /**
+    * Get the raw reference to the current selected spot
+    * 
+    * @return 
+    */
     public BoundedSpotData getRawSelectedSpot( ) {
         return selectedSpot_;
     }
     
+    /**
+     * Set the selectedSpot to a selected Spot returned from getSelectedSpot().
+     * 
+     * @param boundedSpotCopySource
+     * @throws IllegalAccessException -- If the argument was not originally retrieved from the FiducialArea Instance
+     * @throws Exception 
+     */
     public void setSelectedSpot( CopySourceListReference< BoundedSpotData, FiducialArea> boundedSpotCopySource ) throws IllegalAccessException, Exception {
         setSelectedSpotRaw( boundedSpotCopySource.getListObjRef(this) );  //
     }
     
+    /**
+     * Gets the maximum intensity that was fit to the potential fiducial spots in this area
+     * 
+     * @return 
+     */
     public double getMaxIntensity() {
         return maxIntensity_;
     }
