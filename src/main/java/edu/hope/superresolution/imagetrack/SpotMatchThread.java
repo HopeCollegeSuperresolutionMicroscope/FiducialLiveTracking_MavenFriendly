@@ -419,46 +419,6 @@ public class SpotMatchThread implements Runnable {
                 }
             }
             createWindow( curFAreas.get(0).getImagePlus().getProcessor(), paintRois );
-            /*ImageProcessor ref1 = curFAreas.get(0).getImagePlus().getProcessor();
-            ImageProcessor iproc1 = new ShortProcessor(ref1.getWidth(), ref1.getHeight());
-            iproc1.setPixels(ref1.getPixelsCopy());
-            ImageStack iStack1;
-            Window imWin1 = WindowManager.getWindow(acquisitionTitle);
-            StackWindow sWin1;
-            if (imWin1 == null || (imWin1 instanceof StackWindow) == false) {
-                acquisitionTitle = WindowManager.getUniqueName(acquisitionTitle + WindowSeriesNum);
-                WindowSeriesNum++;
-                iStack1 = new ImageStack(iproc1.getWidth(), iproc1.getHeight());
-                iStack1.addSlice(iproc1);
-                ImagePlus ip = new ImagePlus( acquisitionTitle, iStack1);
-                sWin1 = new StackWindow(ip);
-                WindowManager.addWindow(sWin1);
-            } else {
-                sWin1 = (StackWindow) imWin1;
-                sWin1.getImagePlus().getStack().addSlice(iproc1);
-            }
-            ImagePlus ip1 = sWin1.getImagePlus();
-
-            Overlay ov1 = ip1.getOverlay();
-            if (ov1 == null) {
-                ov1 = new Overlay();
-            }
-            Roi roiTest;
-            int sliceNum1 = ip1.getStackSize();
-            for( FiducialArea fArea : curFAreas ) {
-                roiTest = (Roi) fArea.getTrackSearchArea().clone();
-                roiTest.setPosition(sliceNum1);
-                ov1.add( roiTest );
-                for( BoundedSpotData spot : fArea.getAllRawPossibleSpots() ) {
-                    roiTest = (Roi) spot.getBoundingBox().clone();
-                    roiTest.setPosition(sliceNum1);
-                    ov1.add( roiTest );
-                }
-            }
-            ip1.setOverlay(ov1);
-            sWin1.updateImage(ip1);
-            sWin1.showSlice(sliceNum1);
-            */
                         
             //Store the starting number of FiducialAreas with Correlatable intensities
             int totalRealAreas = potentialRealDiffTravelSpots.size() + missingFromReal;
@@ -617,73 +577,8 @@ public class SpotMatchThread implements Runnable {
                         i++;
                     }
                     createWindow(prevFAreas_.get(0).getImagePlus().getProcessor(), paintRois);
-                    //Create New ImageWindow
-                    /*ImageProcessor ref = prevFAreas_.get(0).getImagePlus().getProcessor();
-                    ImageProcessor iproc = new ShortProcessor(ref.getWidth(), ref.getHeight());
-                    iproc.setPixels(ref.getPixelsCopy());
-                    ImageStack iStack;
-                    Window imWin = WindowManager.getWindow(acquisitionTitle);
-                    StackWindow sWin;
-                    if (imWin == null || (imWin instanceof StackWindow) == false) {
-                        ij.IJ.log( "New Window IP Title: " + acquisitionTitle );
-                        acquisitionTitle = WindowManager.getUniqueName(acquisitionTitle + WindowSeriesNum + "_");
-                        WindowSeriesNum++;
-                        ij.IJ.log( "After Unique Window IP Title: " + acquisitionTitle );
-                        iStack = new ImageStack(iproc.getWidth(), iproc.getHeight());
-                        iStack.addSlice(iproc);
-                        ImagePlus ip = new ImagePlus(acquisitionTitle, iStack);
-                        sWin = new StackWindow(ip);
-                        WindowManager.addWindow(sWin);
-                    } else {
-                        sWin = (StackWindow) imWin;
-                        sWin.getImagePlus().getStack().addSlice(iproc);
-                    }
-                    ImagePlus ip = sWin.getImagePlus();
 
-                    Overlay ov = ip.getOverlay();
-                    if( ov == null ) {
-                        ov = new Overlay();
-                    }
-                    
-                    //Test Show this match
-                    List<Color> colorOpts = new ArrayList<Color>();
-                    {
-                        colorOpts.add(Color.BLUE);
-                        colorOpts.add(Color.CYAN);
-                        colorOpts.add(Color.GREEN);
-                        colorOpts.add(Color.MAGENTA);
-                        colorOpts.add(Color.ORANGE);
-                    }
-                    int i = 0;
-                    int sliceNum = ip.getStackSize();
-                    for (TravelMatchCase match : maxMatches) {
-                        if( i >= colorOpts.size() ) {
-                            i = 0;
-                        }
-                        Color lineCol = colorOpts.get(i);
-                        for (FiducialTravelDiff2D diff : match.getFiducialTranslationSpots()) {
-                            if (diff.toVirtual_) {
-                                diff.spotRef_.getBoundingBox().setStrokeColor(Color.blue);
-                                diff.spotRef_.getBoundingBox().setPosition(sliceNum);
-                                ov.add(diff.spotRef_.getBoundingBox());
-                            } else {
-                                diff.spotRef_.getBoundingBox().setStrokeColor(Color.red);
-                                diff.spotRef_.getBoundingBox().setPosition(sliceNum);
-                                ov.add(diff.spotRef_.getBoundingBox());
-                            }
-                            Line line = new Line( diff.spotRef_.getXPixelLocation(), diff.spotRef_.getYPixelLocation(),
-                                                diff.prevSpot_.getXPixelLocation(), diff.prevSpot_.getYPixelLocation() );
-                            line.setStrokeWidth(3);
-                            line.setStrokeColor(lineCol);
-                            line.setPosition(sliceNum);
-                            ov.add( line  );
-                        }
-                        i++;
-                    }
-                    ip.setOverlay(ov);
-                    sWin.updateImage(ip);
-                    sWin.showSlice( sliceNum );*/
-
+                    //This synchronization allows for multiple operations on atomic cureFromVirtualMatchCaseRatio as well
                     synchronized (matchResults_) {
 
                         TravelMatchCase sample = maxMatches.get(0); //They should all have same ratios
