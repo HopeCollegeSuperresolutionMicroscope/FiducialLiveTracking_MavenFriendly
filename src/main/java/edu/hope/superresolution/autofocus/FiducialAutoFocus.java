@@ -701,7 +701,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         boolean outOfFocus = false, comingIntoFocus = false, overShoot = false;
         int backAndForthCount = 0;
         boolean dirSwitch = false;
-        double prevComingIntoFocusZScore = Double.MAX_VALUE;
+        double prevComingIntoFocusZScore = Double.MAX_VALUE; //Separates ComingIntoFocusZScore
         prevOutOfFocusZScore_ = Double.MAX_VALUE; //Reset PrevOutOfFocusZScore
         //Pause Acquisition to avoid blurred images
         app_.getAcquisitionEngine2010().pause();
@@ -715,7 +715,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
             try {
                 //Currently just take a picture at core level and shoot it to ipCurrent_
                 snapSingleImage();
-                //Since We're storing the score in object space, compute it
+                //Since We're storing the score in object scope, compute it
                 computeScore(ipCurrent_);
                 if( beginningStdDev_ == 0 ) {
                     beginningStdDev_ = currentRelativeZUncertainty_;
@@ -731,19 +731,21 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
                         outOfFocus = false;
                     }
                 } else {
+                    //This will overflow...
                     if (currentRelativeZScore_ > prevOutOfFocusZScore_ + prevOutOfFocusZUncertainty_) {
                         //Change Direction
                         dir_ = (dir_ == -1) ? 1 : -1;
                         dirSwitch = true;
                         backAndForthCount++;
-                    }
-                    //Store the zScore and maxUncertainty threshold for determining wrong direction
-                    //This allows some slop, given the slight drift in poor systems like our own
-                    // Hopefully the stdDeviation will produce a buffer zone
-                    if (currentRelativeZScore_ < prevOutOfFocusZScore_) {
-                        prevOutOfFocusZScore_ = currentRelativeZScore_;
-                        prevOutOfFocusZUncertainty_ = (currentRelativeZUncertainty_ == 0)
-                                ? threshold_ : currentRelativeZUncertainty_;
+                    } else {
+                        //Store the zScore and maxUncertainty threshold for determining wrong direction
+                        //This allows some slop, given the slight drift in poor systems like our own
+                        // Hopefully the stdDeviation will produce a buffer zone
+                        if (currentRelativeZScore_ < prevOutOfFocusZScore_) {
+                            prevOutOfFocusZScore_ = currentRelativeZScore_;
+                            prevOutOfFocusZUncertainty_ = (currentRelativeZUncertainty_ == 0)
+                                    ? threshold_ : currentRelativeZUncertainty_;
+                        }
                     }
                     outOfFocus = true;
                 }
@@ -1098,7 +1100,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
             } else {
                 stepInc += Math.abs( baseMult * BASE_STEP_UM);
                 moveZStageRelative( baseMult * BASE_STEP_UM );
-                //remove the location model if it was not a noFid
+                //remove the location model if it was not a noFid since its still meaningless
                 if( !noFid ) {
                     //Get Location Acquisition Model For use of processor
                     LocationAcquisitionModel locAcqModel = fiducialFocusPlugin_.getLocationAcqModel();
