@@ -653,19 +653,4 @@ public class FiducialMoveFinder {
         return maxZ - minZ;
     }
     
-    //This only accounts for 100% case currently
-    private void ApplySelectedMatchCase( TravelMatchCase mCase) {
-        
-        for( FiducialTravelDiff2D diff : mCase.getFiducialTranslationSpots() ) {
-            try {
-                diff.areaOwnerRef_.setSelectedSpotRaw( diff.spotRef_ );
-            }
-            catch ( Exception ex ) {
-                ReportingUtils.showError( "We Did not Fully Set A Selected Spot ");
-                throw new RuntimeException( ex );
-            }
-        }
-        
-    }
-    
 }
