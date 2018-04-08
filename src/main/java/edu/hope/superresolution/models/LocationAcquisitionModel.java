@@ -104,6 +104,7 @@ public class LocationAcquisitionModel {
         }        
     }
     
+    private int numTracked_ = 0; //This tracks the number of LocationAcquisitions that were tracked irregardless of whether they were saved
     private ArrayList< FiducialLocationModel > fLocationAcquisitions_ = 
                                                 new ArrayList< FiducialLocationModel >();  //FiductionLocationModels as set 1 per imagePlus
     private FiducialLocationModel selectedLocationsAcquisition_ = null;
@@ -372,7 +373,7 @@ public class LocationAcquisitionModel {
             //Copy From Last FiducialLocationModel
             try {
                 locModel = FiducialLocationModel.createTrackedFiducialLocationModel(iProc, 
-                        fLocationAcquisitions_.get( fLocationAcquisitions_.size() - 1 ), uniqueAcquisitionTitle_);
+                        fLocationAcquisitions_.get( fLocationAcquisitions_.size() - 1 ), uniqueAcquisitionTitle_, numTracked_);
                         /*new FiducialLocationModel( iProc, 
                     fLocationAcquisitions_.get( fLocationAcquisitions_.size() - 1 ),
                                                         uniqueAcquisitionTitle_ );*/
@@ -380,6 +381,8 @@ public class LocationAcquisitionModel {
                 throw ex;
             } 
         }
+        
+        numTracked_++;
         
         fLocationAcquisitions_.add( locModel );
         if( setSelected || selectedLocationsAcquisition_ == null ) {

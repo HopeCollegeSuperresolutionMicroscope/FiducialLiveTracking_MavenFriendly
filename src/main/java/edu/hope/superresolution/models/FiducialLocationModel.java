@@ -14,19 +14,16 @@ import edu.hope.superresolution.exceptions.NoFiducialException;
 import edu.hope.superresolution.exceptions.NoTrackException;
 import edu.hope.superresolution.genericstructures.FiducialTravelDiff2D;
 import edu.hope.superresolution.genericstructures.TravelMatchCase;
+import edu.hope.superresolution.genericstructures.iDriftModel;
 import edu.hope.superresolution.imagetrack.FiducialMoveFinder;
 import edu.hope.superresolution.processors.FiducialAreaProcessor;
 import ij.ImagePlus;
 import ij.gui.ImageWindow;
 import ij.gui.Roi;
 import ij.process.ImageProcessor;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Observable;
-import java.util.Observer;
-import org.micromanager.utils.ReportingUtils;
 
 /**
  *
@@ -60,12 +57,15 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
     private BoxDisplayTypes boxDisplayMode_ = BoxDisplayTypes.select;    
     
     //Index for number of Index (called in Track Constructor)
-    private final int trackNumber_;
+    private final int acquisitionTrackNumber_;
     private int minNumFiducialsForTrack_ = 3; //Used When Pushing next Location Model From a Track
     private double avgRelXPixelTranslate_ = 0;
     private double avgRelYPixelTranslate_ = 0;
     private double avgAbsoluteXPixelTranslation_ = 0;
     private double avgAbsoluteYPixelTranslation_ = 0;
+    //Negative Standard Deviations indicate a non-useful value
+    private double avgRelXPixelTranslateStdDev_ = -1;
+    private double avgRelYPixelTranslateStdDev_ = -1;
     
     private final List<FiducialArea> fiducialAreaList_ = Collections.synchronizedList( new ArrayList< FiducialArea >() );  //List of Selected Areas
     private final FiducialAreaCallback fAreaCallBack_ = new FiducialAreaCallback();
@@ -86,7 +86,7 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
     public FiducialLocationModel( ImagePlus ip, FiducialAreaProcessor fAreaProcessor, 
                                     String acquisitionTitle ) {
         
-        trackNumber_ = 0;
+        acquisitionTrackNumber_ = 0;
         acquisitionTitle_ = acquisitionTitle;
         
         //This would be better off with a deep copy to isolate it for processing
@@ -103,7 +103,7 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
     public FiducialLocationModel( final ImageWindow imgWin, FiducialAreaProcessor fAreaProcessor,
                                     String acquisitionTitle ) {
 
-        trackNumber_ = 0;
+        acquisitionTrackNumber_ = 0;
         acquisitionTitle_ = acquisitionTitle;
         
         ip_ = imgWin.getImagePlus();
@@ -124,12 +124,18 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
      * 
      * @param ip - New ImagePlus
      * @param fLocationModel - Location Model to copy and track from on new ImagePlus
+     * @param acquisitionTitle - The title of the LocationAcquisitionModel that is producing a track
+     * @param aquisitionTrackNumber - The number of the track relative to the "commissioning" locationAcquistion
+     *                                  Note:  Depending on how the LocationAcquisition handles non-tracked FiducialLocationModels,
+     *                                          it may discard the location model, so this is only meant as a sequential reference to 
+     *                                          when a FiducialLocationModel was commissioned.
      * @throws NoFiducialException - Thrown if there are no viable options For Fiducials In the Track
      */
     public FiducialLocationModel( ImagePlus ip, FiducialLocationModel fLocationModel, 
-                                        String acquisitionTitle ) throws NoFiducialException {
+                                        String acquisitionTitle, int aquisitionTrackNumber ) throws NoFiducialException {
         
         acquisitionTitle_ = acquisitionTitle;
+        acquisitionTrackNumber_ = aquisitionTrackNumber;
         
         ip_ = ip;
         minNumFiducialsForTrack_ = fLocationModel.minNumFiducialsForTrack_;
@@ -140,8 +146,46 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
             IJMMReportingUtils.logError(ex, "Failure to Copy Processor in New FiducialLocationModel");
             throw new RuntimeException( ex );  //Allow Micromanager to respond Appropriately
         }
-        //Create a Movement Finder Based off of previous FiducialAreaList
+        
         int maxMissingFrames = 15;
+        fMoveFinder_ = new FiducialMoveFinder( maxMissingFrames, minNumFiducialsForTrack_,
+                                                acquisitionTitle_ );
+        TravelMatchCase mCase = fMoveFinder_.CorrelateTrackSelectedParticles(fLocationModel.fiducialAreaList_, ip);
+        if( mCase == null ) {
+            throw new NoFiducialException();
+        }
+        
+        ApplySelectedMatchCase( mCase );
+        //Since avg translation Values Calculated by Selecteed MatchCase, use source model for absolute
+        avgAbsoluteXPixelTranslation_ = fLocationModel.avgAbsoluteXPixelTranslation_ + avgRelXPixelTranslate_;
+        avgAbsoluteYPixelTranslation_ = fLocationModel.avgAbsoluteYPixelTranslation_ + avgRelYPixelTranslate_;
+        
+        //For consistency, copy currentSelected too
+        selectedAreaIndex_ = fLocationModel.selectedAreaIndex_;
+        selectedFiducialArea_ = fiducialAreaList_.get( selectedAreaIndex_ );
+
+    }
+    
+    /**
+     * Static method for creating a FiducialLocation Model that tracks Fiducials from another Fiducial Location Model.
+     * 
+     * @param ip
+     * @param fLocationModel
+     * @param acquisitionTitle
+     * @return 
+     */
+    public static FiducialLocationModel createTrackedFiducialLocationModel( ImagePlus ip, FiducialLocationModel fLocationModel, 
+                                        String acquisitionTitle, int acquisitionTrackNumber ) throws NoFiducialException, NoTrackException {
+        return new FiducialLocationModel( ip, fLocationModel, acquisitionTitle, acquisitionTrackNumber );
+        //Create new FiducialLocationModel -> Default FiducialAreas, would be good if we were going to do this graphically
+        //After creating new FiducialLocationModel, we want to process its Fiducial Areas...  Well the way a Fiducial Area is written, it's processed immediately.
+        
+    }
+    
+    public static FiducialLocationModel createTrackedFiducialLocationModel( ImageProcessor iProc, FiducialLocationModel fLocationModel,
+                                            String acquisitionTitle, int acquisitionTrackNumber ) throws NoFiducialException, NoTrackException {
+        //Create a Movement Finder Based off of previous FiducialAreaList
+        /*int maxMissingFrames = 15;
         fMoveFinder_ = new FiducialMoveFinder( fLocationModel.fiducialAreaList_, 
                                                 ip_, maxMissingFrames, minNumFiducialsForTrack_,
                                                 acquisitionTitle_ );
@@ -157,27 +201,9 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         
         //For consistency, copy currentSelected too
         selectedAreaIndex_ = fLocationModel.selectedAreaIndex_;
-        selectedFiducialArea_ = fiducialAreaList_.get( selectedAreaIndex_ );
-        trackNumber_ = fLocationModel.trackNumber_ + 1;
-
-    }
-    
-    /**
-     * Static method for creating a FiducialLocation Model that tracks Fiducials from another Fiducial Location Model.
-     * 
-     * @param ip
-     * @param fLocationModel
-     * @param acquisitionTitle
-     * @return 
-     */
-    public static FiducialLocationModel createTrackedFiducialLocationModel( ImagePlus ip, FiducialLocationModel fLocationModel, 
-                                        String acquisitionTitle ) throws NoFiducialException, NoTrackException {
-        return new FiducialLocationModel( ip, fLocationModel, acquisitionTitle );
-    }
-    
-    public static FiducialLocationModel createTrackedFiducialLocationModel( ImageProcessor iProc, FiducialLocationModel fLocationModel,
-                                            String acquisitionTitle ) throws NoFiducialException, NoTrackException {
-        return new FiducialLocationModel( iProc, fLocationModel, acquisitionTitle );
+        selectedFiducialArea_ = fiducialAreaList_.get( selectedAreaIndex_ );*/
+        
+        return new FiducialLocationModel( iProc, fLocationModel, acquisitionTitle, acquisitionTrackNumber );
         /*if( !fModel.isTracked ) {
             throw new NoTrackException( "Failed to Track to previous FiducialModel" );
         }*/
@@ -193,8 +219,8 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
      * @throws NoFiducialException - Thrown if there are no viable options For Fiducials In the Track
      */
     public FiducialLocationModel( ImageProcessor iProc, FiducialLocationModel fLocationModel,
-                                            String acquisitionTitle ) throws NoFiducialException {
-        this( new ImagePlus("Track Processed Num:" + (fLocationModel.trackNumber_ + 1), iProc), fLocationModel, acquisitionTitle );
+                                            String acquisitionTitle, int acquisitionTrackNumber ) throws NoFiducialException {
+        this( new ImagePlus("Track Processed Num:" + (acquisitionTrackNumber + 1), iProc), fLocationModel, acquisitionTitle, acquisitionTrackNumber );
     }
     
 
@@ -232,8 +258,9 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         avgRelXPixelTranslate_ = avgXTranslate / (mCase.getFiducialTranslationSpots().size() * fAreaProcessor_.getPixelSize());
         avgRelYPixelTranslate_ = avgYTranslate / (mCase.getFiducialTranslationSpots().size() * fAreaProcessor_.getPixelSize());
         
-        //Calculate Standard Deviation of those translations (unbiased)
-        double avgRelXPixelTranslateStdDev_ = 0, avgRelYPixelTranslateStdDev_ = 0;
+        //Calculate Standard Deviation of those translations (corrected)
+        avgRelXPixelTranslateStdDev_ = 0;
+        avgRelYPixelTranslateStdDev_ = 0;
         int numFiducials = 0;
         //Apply Selected Spots to the FiducialAreas and Fiducial Areas to the List
         for( FiducialTravelDiff2D diff : mCase.getFiducialTranslationSpots() ) {
@@ -242,12 +269,21 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
             if( !diff.toVirtual_ || !diff.fromVirtual_ ) {
                 avgRelXPixelTranslateStdDev_ += Math.pow((diff.xDiffs_ - avgXTranslate), 2);
                 avgRelYPixelTranslateStdDev_ += Math.pow((diff.yDiffs_ - avgYTranslate), 2);
-                //numFiducials
-            }
-            
-            
+                numFiducials++;
+            }              
         }
         
+        if( numFiducials > 1 ) {
+            Math.sqrt(avgRelXPixelTranslateStdDev_ = avgRelXPixelTranslateStdDev_/(numFiducials - 1));
+            Math.sqrt(avgRelYPixelTranslateStdDev_ = avgRelYPixelTranslateStdDev_/(numFiducials - 1));
+        } else{
+            avgRelXPixelTranslateStdDev_ = -1;
+            avgRelYPixelTranslateStdDev_ = -1;
+        }
+        
+
+            
+         
         
         //Update the List in case of references
         fiducialAreaList_.clear();
@@ -569,11 +605,33 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
     }
 
     /**
+     * Get the Standard Deviation of the translations used to produce the Average Relative X Pixel Translation
+     * 
+     * This deviation accounts for datum that are not calculated from Virtual spots or to Virtual Spots
+     * 
+     * @return 
+     */
+    public double getAvgRelXPixelTranslationStdDev() {
+        return avgRelXPixelTranslateStdDev_;
+    }
+    
+    /**
      *  Get the Average X Translation from the last Fiducial Model to this one 
      * @return 
      */
     public double getAvgRelYPixelTranslation() {
         return avgRelYPixelTranslate_;
+    }
+    
+        /**
+     * Get the Standard Deviation of the translations used to produce the Average Relative Y Pixel Translation
+     * 
+     * This deviation accounts for datum that are not calculated from Virtual spots or to Virtual Spots
+     * 
+     * @return 
+     */
+    public double getAvgRelYPixelTranslationStdDev() {
+        return avgRelYPixelTranslateStdDev_;
     }
     
     /**
