@@ -24,7 +24,7 @@ public interface iFiducialAreaProcessor {
     //Check whether the processor's methods are meant to be async
     boolean isAsyncProcessEnabled();
     
-    /*
+    /**
     *   @return - whether of not a fit was performed
     */
     public boolean fitRoiForImagePlus( ImagePlus ip, Roi roi, ListCallback resultListCallback );
