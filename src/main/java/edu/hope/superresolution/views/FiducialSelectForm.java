@@ -918,13 +918,13 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
                 case FiducialLocationModel.EVENT_ELEMENT_SELECTED:
                     onModelSelectFiducialElement();
                     break;
-                case FiducialLocationModel.EVENT_FIDUCIAL_AREA_DATA_CHANGED:
+                case FiducialLocationModel.EVENT_FIDUCIAL_SELECTION_CHANGED:
                     onFiducialAreaDataChanged();
                     break;
-                case FiducialLocationModel.EVENT_FIDUCIAL_SELECTION_CHANGED:
+                case FiducialLocationModel.EVENT_FIDUCIAL_AREA_DATA_CHANGED:
                     refreshStatus();
                     break;
-                case FiducialLocationModel.EVENT_FIDCUIAL_REGION_CHANGED:
+                case FiducialLocationModel.EVENT_FIDUCIAL_REGION_CHANGED:
                     refreshStatus();
                     break;
                 case FiducialLocationModel.EVENT_ELEMENT_SET:  //Setting an Element's Properties has no effect

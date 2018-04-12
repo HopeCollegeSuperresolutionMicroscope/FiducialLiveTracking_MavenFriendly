@@ -41,11 +41,11 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
     /**
      * {@link ModelUpdateDispatcher} Flag - When the data regarding a fiducialArea in the FiducialLocation Model has changed (inconclusive on whether selected or other)
      */
-    public static final int EVENT_FIDUCIAL_AREA_DATA_CHANGED = 6;
+    public static final int EVENT_FIDUCIAL_SELECTION_CHANGED = 6;
         /**
      * {@link ModelUpdateDispatcher} Flag - When the data regarding a fiducialArea in the FiducialLocation Model has changed (inconclusive on whether selected or other)
      */
-    public static final int EVENT_FIDUCIAL_SELECTION_CHANGED = 7;
+    public static final int EVENT_FIDUCIAL_AREA_DATA_CHANGED = 7;
     public static final int EVENT_FIDUCIAL_REGION_CHANGED = 8;
     public static final int EVENT_SHOW_ALL = 9;
     public static final int EVENT_SHOW_CURRENT = 10;
@@ -292,7 +292,7 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         fiducialAreaList_.clear();
         fiducialAreaList_.addAll(tempList);
         
-        //TODO: We need to dispatch an event
+        //TODO: We need to dispatch an event that is more meaningful
         
     }
     
@@ -683,11 +683,11 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         @Subscribe
         public void onSelectedFiducialChanged(FiducialArea.SelectedFiducialChangeEvent evt) {
             //Should be reworked, but currently just call update for listeners
-            dispatch(EVENT_FIDUCIAL_AREA_DATA_CHANGED);
+            dispatch(EVENT_FIDUCIAL_SELECTION_CHANGED);
         }
-
+        
         /**
-         * Callback for handling when a FiducialArea's Search Reagion Has
+         * Callback for handling when a FiducialArea's Search Region Has
          * Changed
          * <p>
          * TODO: Change internals to dispatch StateBroadcaster instead of
@@ -715,7 +715,7 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         @Subscribe
         public void onSelectedFiducialChanged(FiducialArea.SpotSearchRepopulatedEvent evt) {
             //Should be reworked, but currently just call update for listeners
-            dispatch(EVENT_FIDUCIAL_SELECTION_CHANGED);
+            dispatch(EVENT_FIDUCIAL_AREA_DATA_CHANGED);
         }
     }
 }

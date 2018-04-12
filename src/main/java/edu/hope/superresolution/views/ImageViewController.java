@@ -331,7 +331,7 @@ public class ImageViewController implements ModelUpdateListener {
                     break;
                 case FiducialLocationModel.EVENT_ELEMENT_SELECTED:  //An New Element was selected
                 case FiducialLocationModel.EVENT_ELEMENT_REMOVED:
-                case FiducialLocationModel.EVENT_FIDUCIAL_AREA_DATA_CHANGED:
+                case FiducialLocationModel.EVENT_FIDUCIAL_SELECTION_CHANGED:
                     updateOverlay();
                     break;
                 case FiducialLocationModel.EVENT_STORE_ROI_REQUEST:
