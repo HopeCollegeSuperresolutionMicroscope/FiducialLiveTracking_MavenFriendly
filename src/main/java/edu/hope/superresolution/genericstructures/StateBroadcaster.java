@@ -13,14 +13,16 @@ import com.google.common.eventbus.EventBus;
  * Uses an EventBus instance to dispatch to subscribers that are registered to listen for events.
  * Extending Classes must dispatch events in their code as seen fit, and make an effort to account for 
  * cyclic dispatches if they exist.
- * <br/>
+ * <p>
  * It is the burden of the Extending Class to expose public events so that a registering class can build callback methods
  * for it.
- * <br/>
+ * <p>
  * Note: Logging will report the Classname and a number related to chronology of creation from start of the program.
- * This will be accurate until overflow occurs, and then will iterate form INT_MIN to INT_MAX. Note this for any SUPER long runing
+ * This will be accurate until overflow occurs, and then will iterate form INT_MIN to INT_MAX. Note this for any SUPER long running
  * and SUPER instance heavy applications.
  * TODO: extending to AbstractClasses for Event Queue dispatching for better utility
+ * TODO: Genericizing for the sake of Using MBassador due to benchmarking improvements see: https://github.com/bennidi/eventbus-performance
+ * 
  * 
  * @author HanseltimeIndustries
  */

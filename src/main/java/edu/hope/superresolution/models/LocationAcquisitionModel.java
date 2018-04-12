@@ -357,7 +357,7 @@ public class LocationAcquisitionModel {
      * <p>
      *  See the reference to the other overloaded function for parameters
      * 
-     * @see #pushNextFiducialLocationModel(ij.ImagePlus, boolean) 
+     * @see #pushNextFiducialLocationModel(ij.process.ImageProcessor, boolean)  
      * 
      */
     public FiducialLocationModel pushNextFiducialLocationModel( ImageProcessor iProc, boolean setSelected ) throws NoFiducialException {
