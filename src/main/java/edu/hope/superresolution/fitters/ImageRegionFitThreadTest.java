@@ -435,7 +435,7 @@ abstract public class ImageRegionFitThreadTest extends ExtendedGaussianInfo impl
      * is also called as a contingency before running the thread.
      * 
      * @param roi The roi to check. Checks the internally saved roi during init()
-     * @return <code>true<code> if roi is a valid roi for the sub-Class Implementations
+     * @return <code>true</code> if roi is a valid roi for the sub-Class Implementations
      */
     abstract public boolean roiIsValid( Roi roi );
     

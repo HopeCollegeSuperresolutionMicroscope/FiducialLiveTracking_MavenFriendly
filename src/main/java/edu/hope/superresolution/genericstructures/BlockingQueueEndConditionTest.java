@@ -19,7 +19,7 @@ package edu.hope.superresolution.genericstructures;
  *                        of the BlockingQueue expected.
  * 
  * @see edu.hope.superresolution.fitters.FitStackThread
- * @see BlockingQueue
+ * @see java.util.concurrent.BlockingQueue
  * 
  * @author Justin Hanselman
  */

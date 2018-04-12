@@ -394,7 +394,6 @@ public class PropertyNotifyingImagePlus extends ImagePlus {
      * <p>
      * Causing Methods:  setLUT(LUT)
      * 
-     * @see ImagePlus#setLut(LUT)
      */
     public static class LUTChangedEvent extends MasterSpecificEvent {
         
@@ -1370,7 +1369,7 @@ public class PropertyNotifyingImagePlus extends ImagePlus {
         
         /**
          * General Constructor
-         * @param orignator 
+         * @param originator 
          */
         public DummyEvent( PropertyNotifyingImagePlus originator ) {
             super( originator );
@@ -2429,7 +2428,7 @@ public class PropertyNotifyingImagePlus extends ImagePlus {
      * members if the other methods have changed properties in the ImageProcessor.  This method
      * will throw two events potentially, the ImageChangeEvent and ImageProcessorChangeEvent with pixels changed event.
      * 
-     * @see ImagePlus#updateImage(java.lang.String, ij.process.ImageProcessor )   
+     * @see ImagePlus#updateImage()   
      */
     @Override
     public void updateImage() {

@@ -40,7 +40,7 @@ import org.apache.commons.math3.optim.PointVectorValuePair;
  GaussianFit.java)
  *  
  * @see GaussianWithDefocusModel
- * @see edu.valelab.gaussianfit.algorithm.GaussianFit.java
+ * @see edu.valelab.gaussianfit.algorithm.GaussianFit
  * 
  * 
  * @author Microscope
@@ -105,7 +105,7 @@ public class GaussianWithDefocusFit implements FitProcessContainer {
      * 2. sigma relates to the Gaussian Waist as defined above
      * 3. N*sigma is the normalization for which the Zernike Coefficient is orthogonal
      * 4. xC and yC may have additional error do to the current Levenberg-Marquardt convergence Checker
-     *      This Implies |xC| + DELTA_XC_LIM or |yC| + DELTA_YC_LIM > ||xC|| or ||yC||
+     *      This Implies |xC| + DELTA_XC_LIM or |yC| + DELTA_YC_LIM &gt; ||xC|| or ||yC||
      * 5. ALL PHYSICAL VALUES ARE IN IMAGE VALUES (i.e. Pixel Bit Values, Pixel values (decimal))
      * 
      * </pre>

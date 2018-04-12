@@ -30,7 +30,7 @@ import java.util.concurrent.BlockingQueue;
  * 
  * @author Microscope
  * 
- * @see edu.hope.superresolution.fitters.GaussianFitStackThread
+ * @see edu.hope.superresolution.fitters.GaussianWithDefocusFitStackThread
  * @see edu.hope.superresolution.fitters.GaussianFit
  */
 public class GaussianWithSimpleDefocusFitThread extends GenericBaseGaussianFitThread {

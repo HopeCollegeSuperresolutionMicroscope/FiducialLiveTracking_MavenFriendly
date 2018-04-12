@@ -28,7 +28,6 @@ public class LocationAcquisitionDisplayWindow extends UnderDockCapableStackImage
      * General Constructor - A Window is created By the LocationAcquisition, Pairing 
      * Every Fiducial Location Model to the Slices.
      * 
-     * @param locAcq 
      */
     protected LocationAcquisitionDisplayWindow( PropertyNotifyingImagePlus propImPlus, ImPlusListenerDockablePanel locationModelDock ) {
         //Sloppy Code, But Create A Dummy ImagePlus that we will Repopulate upon accessing the locAcquisition

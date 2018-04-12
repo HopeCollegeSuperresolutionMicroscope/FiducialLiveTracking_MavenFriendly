@@ -79,7 +79,7 @@ public class GaussianFitThread extends GenericBaseGaussianFitThread {
     * @return A GaussianFitStackThreadTest that will perform Basic Gaussian Fits
     * 
     * @see GaussianFitStackThreadTest
-    * @see #super
+    * @see GenericBaseGaussianFitThread#run() 
     */
     @Override
     protected FitStackThread createFitStackThreadInstance(BlockingQueue<SpotData> sourceList, BlockingQueueEndConditionTest<SpotData> endCondTest, List<SpotData> resultList, ImagePlus siPlus, int halfSize, int shape, FitProcessContainer.OptimizationModes fitMode) {

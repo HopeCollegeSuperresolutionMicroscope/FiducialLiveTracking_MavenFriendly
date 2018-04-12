@@ -25,7 +25,7 @@ import java.util.concurrent.BlockingQueue;
  * and, in general, updated parameters would suggest a basic FitStackThread class
  * that invokes a particular implementation of FitProcess.
  * <p>
- * Use of Getter and Setter Functions for FitProcess is required to maintain uniformity
+ * Use of Getter and Setter Functions for FitProcessContainer is required to maintain uniformity
  * in design.  The FitProcessContainer set at this super level, is expected to be 
  * called in the extending class's implementation of #runFitProcess( SpotData), and 
  * will throw an fatal exception if the FitProcess is not set.  Manipulation of the FitProcess
@@ -36,7 +36,7 @@ import java.util.concurrent.BlockingQueue;
  * 
  * @see edu.valelab.gaussianfit.algorithm.GaussianFit
  * @see edu.valelab.gaussianfit.GaussianFitStackThread
- * @see edu.hope.superresolution.fitters.FitProcess
+ * @see edu.hope.superresolution.fitprocesses.FitProcessContainer
  * 
  * @author Microscope
  */

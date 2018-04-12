@@ -110,7 +110,7 @@ public abstract class GenericBaseGaussianFitThread extends ImageRegionFitThreadT
      * is also called as a contingency before running the thread.
      * 
      * @param roi The Roi to check.  Checks the internally saved roi during setter operations
-     * @return <code>true<code> if roi is a positive non-zero area
+     * @return <code>true</code> if roi is a positive non-zero area
      */
     @Override
     public boolean roiIsValid( Roi roi ) {
