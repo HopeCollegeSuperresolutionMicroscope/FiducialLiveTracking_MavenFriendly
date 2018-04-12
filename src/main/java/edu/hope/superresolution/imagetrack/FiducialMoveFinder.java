@@ -158,7 +158,7 @@ public class FiducialMoveFinder {
      * @param prevFAreas - The List of previous Fiducial Area that are to be tracked
      * @param curIP - The current ImagePlus to apply Tracking for
      * @return - The best case match case, or null if nothing could be tracked.  Please note, as tracking is still subjective, this may return a bad track.
-     * @see FiducialMoveFinder#SelectMatch(java.util.List, double) for better understanding of the selection process when multiple track possibilities are detected
+     * @see FiducialMoveFinder#SelectMatch(java.util.List, com.google.common.util.concurrent.AtomicDouble, com.google.common.util.concurrent.AtomicDouble, double)
      */
     public TravelMatchCase CorrelateTrackSelectedParticles( List<FiducialArea> prevFAreas, ImagePlus curIP ) {
         
@@ -180,7 +180,7 @@ public class FiducialMoveFinder {
                     //If Not Virtual, let it affect FailRatio
                     ++numRealAreas;
                 }
-                curFAreas.add(new FiducialArea(curIP, trackArea, fArea));
+                curFAreas.add( FiducialArea.createLinkedFiducialArea(curIP, trackArea, fArea));
                 }
                 finally {
                     if( wasAsync ) {
@@ -209,7 +209,7 @@ public class FiducialMoveFinder {
      * @param curFAreas - The current FiducialAreas on a new Image Area that will be used mainly for its geometry and the fiducial processor.  If a selected FiducialParticle is
      *                    already selected on this FiducialArea, it will not be altered, but the MatchCase returned will provide the particles that should be selected based off of track.
      * @return - The best case match case, or null if nothing could be tracked.  Please note, as tracking is still subjective, this may return a bad track.
-     * @see FiducialMoveFinder#SelectMatch(java.util.List, double) for better understanding of the selection process when multiple track possibilities are detected
+     * @see #SelectMatch(java.util.List, com.google.common.util.concurrent.AtomicDouble, com.google.common.util.concurrent.AtomicDouble, double) 
      */
     public TravelMatchCase CorrelateDifferences(List<FiducialArea> prevFAreas, List<FiducialArea> curFAreas) {
 
@@ -422,7 +422,7 @@ public class FiducialMoveFinder {
             copyRoi = new Roi( origArea.getXBase() + ( xWidthShifts * origArea.getFloatWidth() ),
                                 origArea.getYBase() + ( yWidthShifts * origArea.getFloatHeight() ),
                                 origArea.getFloatWidth(), origArea.getFloatHeight() );
-            shiftedFAreaList.add( new FiducialArea( curIP, copyRoi, fArea ) );
+            shiftedFAreaList.add( FiducialArea.createLinkedFiducialArea(curIP, copyRoi, fArea) );
         }
         
         return shiftedFAreaList;

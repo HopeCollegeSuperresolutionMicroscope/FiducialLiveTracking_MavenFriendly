@@ -827,7 +827,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         //Average
         for( FiducialArea fArea : fiducials ) {
             if( !fArea.getRawSelectedSpot().isVirtual() ) {
-                avgs[0] += fArea.getRelativeFocusDistance();
+                avgs[0] += fArea.getDriftInfo().getZFromStartTranslation();
                 numZMeasures++;
             }
         }
@@ -835,7 +835,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         
         for( FiducialArea fArea : fiducials ) {
             if( !fArea.getRawSelectedSpot().isVirtual() ) {
-                avgs[1] += Math.pow( fArea.getRelativeFocusDistance() - avgs[0], 2);
+                avgs[1] += Math.pow( fArea.getDriftInfo().getZFromStartTranslation() - avgs[0], 2);
             }
         }
         avgs[1] = Math.sqrt( avgs[1]/numZMeasures );
@@ -859,7 +859,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         int numZMeasures = 0;
         for( FiducialArea fArea : fiducials ) {
             if( !fArea.getRawSelectedSpot().isVirtual() ) {
-                avgZDepth += fArea.getRelativeFocusDistance();
+                avgZDepth += fArea.getDriftInfo().getZFromStartTranslation();
                 //sumZUncertaintiesSquare += Math.pow(fArea.getRelativeFocusDistanceUncertainty(), 2);
                 numZMeasures++;
             }
@@ -870,7 +870,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         double stdDev = 0;
         for( FiducialArea fArea : fiducials ) {
             if( !fArea.getRawSelectedSpot().isVirtual() ) {
-                stdDev += Math.pow( fArea.getRelativeFocusDistance() - avgZDepth, 2);
+                stdDev += Math.pow( fArea.getDriftInfo().getZFromStartTranslation()- avgZDepth, 2);
             }
         }
         return Math.sqrt(stdDev/numZMeasures);
@@ -892,7 +892,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         
         for( FiducialArea fArea : fiducials ) {
             if( fArea.getVirtualFrameTrackNumber() == 0 ) {
-                sumUncertainties += Math.pow( fArea.getRelativeFocusDistanceUncertainty(), 2);
+                sumUncertainties += Math.pow( fArea.getDriftInfo().getZFromStartTranslation(), 2);
                 numZMeasures++;
             }
         }

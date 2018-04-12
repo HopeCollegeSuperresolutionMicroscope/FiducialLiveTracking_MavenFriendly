@@ -38,9 +38,15 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
     public static final int EVENT_ELEMENT_SELECTED = 3;
     public static final int EVENT_ELEMENT_MOD_FAILED = 4;
     public static final int EVENT_STORE_ROI_REQUEST = 5;
+    /**
+     * {@link ModelUpdateDispatcher} Flag - When the data regarding a fiducialArea in the FiducialLocation Model has changed (inconclusive on whether selected or other)
+     */
     public static final int EVENT_FIDUCIAL_AREA_DATA_CHANGED = 6;
+        /**
+     * {@link ModelUpdateDispatcher} Flag - When the data regarding a fiducialArea in the FiducialLocation Model has changed (inconclusive on whether selected or other)
+     */
     public static final int EVENT_FIDUCIAL_SELECTION_CHANGED = 7;
-    public static final int EVENT_FIDCUIAL_REGION_CHANGED = 8;
+    public static final int EVENT_FIDUCIAL_REGION_CHANGED = 8;
     public static final int EVENT_SHOW_ALL = 9;
     public static final int EVENT_SHOW_CURRENT = 10;
     public static final int EVENT_FIDUCIAL_BOX_DISPLAY_CHANGE = 11;
@@ -244,15 +250,17 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
             avgXTranslate += diff.xDiffs_;
             avgYTranslate += diff.yDiffs_;
             //Add Change Observer so that the area will register
+            //This is way too soon for this.  since we haven't even add the fArea...
             fArea.RegisterToStateEventBus(fAreaCallBack_);
+            //Actually set the result's selected spot
             try {
-                fArea.setSelectedSpotRaw( diff.spotRef_ );
+                //fArea.setSelectedSpotRaw( diff.spotRef_ );
+                fArea.applyTravelDifferenceAsDrift(diff, acquisitionTrackNumber_);
             }
             catch ( Exception ex ) {
                 throw new RuntimeException( ex );
             }
             tempList.add( fArea );
-            
         }
         
         avgRelXPixelTranslate_ = avgXTranslate / (mCase.getFiducialTranslationSpots().size() * fAreaProcessor_.getPixelSize());
@@ -264,7 +272,6 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         int numFiducials = 0;
         //Apply Selected Spots to the FiducialAreas and Fiducial Areas to the List
         for( FiducialTravelDiff2D diff : mCase.getFiducialTranslationSpots() ) {
-            fArea = diff.areaOwnerRef_;
             //We Can Really only Calculate Standard Deviation from the set of real to real reliably
             if( !diff.toVirtual_ || !diff.fromVirtual_ ) {
                 avgRelXPixelTranslateStdDev_ += Math.pow((diff.xDiffs_ - avgXTranslate), 2);
@@ -281,13 +288,11 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
             avgRelYPixelTranslateStdDev_ = -1;
         }
         
-
-            
-         
-        
         //Update the List in case of references
         fiducialAreaList_.clear();
         fiducialAreaList_.addAll(tempList);
+        
+        //TODO: We need to dispatch an event
         
     }
     
@@ -507,7 +512,7 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
      * <p>
      * TODO: Ensure thread Safety
      * 
-     * @param ip - the new imagePlus
+     * @param iproc - the new imageProcessor
      * @return - <code>true</code> if the ImagePlus was different or not null <code>false</code>
      *            if the ImagePlus was null or has not changed.
      */
@@ -543,7 +548,6 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
      * @param minNum - The minimum number of Fiducials to be found.  Should be greater
      *                 than 0 and less than the number of fiducial areas.
      * 
-     * @see #FiducialLocationModel(ij.ImagePlus, edu.hope.superresolution.models.FiducialLocationModel) 
      */
     public void setMinNumFiducialTracks( int minNum ) {
         minNumFiducialsForTrack_ = minNum;
@@ -557,7 +561,6 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
      * 
      * @return Returns the minimum number of Fiducials that must be located for a track to be good
      * 
-     * @see #FiducialLocationModel(ij.ImagePlus, edu.hope.superresolution.models.FiducialLocationModel) 
      */
     public int getMinNumFiducialTracks( ) {
         return minNumFiducialsForTrack_;
@@ -569,15 +572,16 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
      */
     public void setFocusPlaneToCurrentFiducials() {
         
-        double avgDiffs = 0;
+        double avgDiffs = 0, avgUncertaintyDiffs = 0;
         int numReal = 0;
         //Store the Real Spots Widths First
         for( int i = 0; i< fiducialAreaList_.size(); ++i ) {
             FiducialArea fArea = fiducialAreaList_.get(i);
             BoundedSpotData spot = fArea.getRawSelectedSpot();
             if( spot!= null && !spot.isVirtual() ) {
-                fArea.setRefSigmaNaut( spot.getWidth()/4 );
-                avgDiffs += spot.getWidth()/4 - fArea.getRefSigmaNaut();
+                avgDiffs += spot.getWidth()/4 - fArea.getFocusPlaneSigmaRef();
+                avgUncertaintyDiffs = spot.getSigma() - fArea.getFocusPlaneSigmaRefUncertainty();
+                fArea.setRefSigmaNaut( spot.getWidth()/4, spot.getSigma() );
                 numReal++;
             }
         }
@@ -589,7 +593,9 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
             FiducialArea fArea = fiducialAreaList_.get(i);
             BoundedSpotData spot = fArea.getRawSelectedSpot();
             if( spot!= null && spot.isVirtual() ) {
-                fArea.setRefSigmaNaut( fArea.getRefSigmaNaut() + avgDiffs );
+                //Guard against some strange uncertainty being produce 
+                assert(avgUncertaintyDiffs + fArea.getFocusPlaneSigmaRefUncertainty() >= 0);
+                fArea.setRefSigmaNaut( fArea.getFocusPlaneSigmaRef()+ avgDiffs, fArea.getFocusPlaneSigmaRefUncertainty() + avgUncertaintyDiffs );
             }
         }
         
@@ -641,7 +647,6 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
      *   of a Track Copy Constructor.
      * 
      * @return the Value in Image coordinates (Pixels) of X Translation
-     * @see #FiducialLocationModel(ij.process.ImageProcessor, edu.hope.superresolution.models.FiducialLocationModel) 
      */
     public double getAvgAbsoluteXPixelTranslation() {
         return avgAbsoluteXPixelTranslation_;
@@ -654,7 +659,6 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
      *   of a Track Copy Constructor.
      * 
      * @return the Value in Image coordinates (Pixels) of Y Translation
-     * @see #FiducialLocationModel(ij.process.ImageProcessor, edu.hope.superresolution.models.FiducialLocationModel) 
      */
     public double getAvgAbsoluteYPixelTranslation() {
         return avgAbsoluteYPixelTranslation_;
@@ -668,7 +672,7 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
     private class FiducialAreaCallback {
 
         /**
-         * Callback for handling when a selectedFiducialArea Has Changed
+         * Callback for handling when a FiducialArea's Selected Fiducial Has Changed
          * <p>
          * TODO: Change internals to dispatch StateBroadcaster instead of
          * current Observer Paradigm TODO: See if Async Callback is more
@@ -695,7 +699,7 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         @Subscribe
         public void onFAreaSearchRegionChanged(FiducialArea.RoiChangeEvent evt) {
             //Should be reworked, but currently just call update for listeners
-            dispatch(EVENT_FIDCUIAL_REGION_CHANGED);
+            dispatch(EVENT_FIDUCIAL_REGION_CHANGED);
         }
 
         /**
