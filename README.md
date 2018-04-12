@@ -88,6 +88,17 @@ the src/3rdpartylib/ directory.
         Recall that you must attach the debugger to the jvm you're running with the debug profile, since micro-manager
         will block on a listener.
 
+##COMPILING JAVADOC
 
+   * In order to help with clarity of JavaDoc, this project makes use of several custom JavaDoc tags.  Because of this
+       one must use the JavaDoc-Compilation profile.
+
+   * **For Ease of Use in Netbeans** Open up Project->Properties->Actions-> Select "Generate Javadoc" Action
+
+        Set
+            Execute Goals: generate-sources
+            Activate Profiles: JavaDoc-Compilation
+
+   * If not in Netbeans, simply use the command: mvn generate-sources JavaDoc-Compilation
 
 
