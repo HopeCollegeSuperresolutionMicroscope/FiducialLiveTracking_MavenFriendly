@@ -7,7 +7,8 @@ package edu.hope.superresolution.autofocus;
 
 import edu.hope.superresolution.ImageJmodifieds.TwoSliceSelector;
 import edu.hope.superresolution.MMgaussianfitmods.datasubs.BoundedSpotData;
-import edu.hope.superresolution.exceptions.NoFiducialException;
+import edu.hope.superresolution.exceptions.NoTrackException;
+import edu.hope.superresolution.genericstructures.iDriftModel;
 import edu.hope.superresolution.livetrack.LiveTracking;
 import edu.hope.superresolution.models.FiducialArea;
 import edu.hope.superresolution.models.FiducialLocationModel;
@@ -101,8 +102,6 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
     private int maxBackAndForth_ = 5;
     private int noFocusCount_ = 0;
     private int dir_ = 1; //Direction for moving
-    private double relativeXPixelTranslation_ = 0;
-    private double relativeYPixelTranslation_ = 0;
     
     //local global list of all translationPoints for the currentAcquisition
     private List<FocusFrameTranslationObj> translationPoints_ = new ArrayList(); 
@@ -611,7 +610,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
             try {
                 locAcqModel.pushNextFiducialLocationModel(ipCurrent_, true);
                 numOverShoot = 0;
-            } catch (NoFiducialException ex) {
+            } catch (NoTrackException ex) {
                 stillfocus = false;
                 numOverShoot += 1;
             }
@@ -631,10 +630,10 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
             //Track This next FiducialLocationModel Until we can't find the Fiducial
             try {
                 locAcqModel.pushNextFiducialLocationModel(ipCurrent_, true);
-                //This will only execute if a NoFiducialException is not thrown
+                //This will only execute if a NoTrackException is not thrown
                 stillfocus = true;
                 numOverShoot += 1;
-            } catch (NoFiducialException ex) {
+            } catch (NoTrackException ex) {
                 stillfocus = false;
                 numOverShoot = 0;
             }
@@ -707,8 +706,6 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         app_.getAcquisitionEngine2010().pause();
         //Reset NumImages Taken Count For This Focus
         numImagesTaken_ = 0;
-        relativeXPixelTranslation_ = 0;
-        relativeYPixelTranslation_ = 0;
         int numStepsInDir = 0;
         int prevNumStepsInDir = 0;
         do {
@@ -749,7 +746,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
                     }
                     outOfFocus = true;
                 }
-            } catch (NoFiducialException e) {
+            } catch (NoTrackException e) {
                 if (backAndForthCount < maxBackAndForth_) {
                     dir_ = (dir_ == -1) ? 1 : -1;
                     dirSwitch = true;
@@ -770,7 +767,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
             }
 
             //Move Here if detected out of focus
-            //This Accounts for NoFiducialExceptions and score dilemmas
+            //This Accounts for NoTrackExceptions and score dilemmas
             if (outOfFocus) {
                 boolean slopFocus = true;
                 if (dirSwitch) {
@@ -795,9 +792,9 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         //Add the Translation if we are doing this for an acquisition
         // And We did not get a null LocationModel as a result of not finding anything
         if (lastFLocModel_ != null && currentAcqName_ != null) {
-            FocusFrameTranslationObj tObj = new FocusFrameTranslationObj(lastFLocModel_.getAvgAbsoluteXPixelTranslation(),
-                    lastFLocModel_.getAvgAbsoluteYPixelTranslation(),
-                    lastFrame, numImagesTaken_);
+            iDriftModel pixeldrift = lastFLocModel_.getPixelSizeAbsoluteDriftModel();
+            FocusFrameTranslationObj tObj = new FocusFrameTranslationObj( pixeldrift.getXFromStartTranslation(),
+                                                    pixeldrift.getYFromStartTranslation(), lastFrame, numImagesTaken_);
             //Since Synchronized list, already thread-safe
             translationPoints_.add(tObj);
         }
@@ -995,9 +992,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         LocationAcquisitionModel locAcqModel = fiducialFocusPlugin_.getLocationAcqModel();
         try {
             lastFLocModel_ = locAcqModel.pushNextFiducialLocationModel(ip, true);
-            relativeXPixelTranslation_ += lastFLocModel_.getAvgRelXPixelTranslation();
-            relativeYPixelTranslation_ += lastFLocModel_.getAvgRelYPixelTranslation();
-        } catch (NoFiducialException e) {
+        } catch (NoTrackException e) {
             e.printStackTrace();
             ij.IJ.log(e.getMessage());
             //Re Package the Error as a RunTimeError
@@ -1083,7 +1078,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
             snapSingleImage();
             try {
                 computeScore( ipCurrent_ );
-            } catch ( NoFiducialException ex ) {
+            } catch ( NoTrackException ex ) {
                 noFid = true;
                 slopNoFocusCount_++;
             }

@@ -7,12 +7,10 @@ package edu.hope.superresolution.livetrack;
 
 import com.opencsv.CSVWriter;
 import edu.hope.superresolution.Utils.IJMMReportingUtils;
-import edu.hope.superresolution.autofocus.FiducialAutoFocus;
-import edu.hope.superresolution.exceptions.NoFiducialException;
+import edu.hope.superresolution.exceptions.NoTrackException;
 import edu.hope.superresolution.models.FiducialLocationModel;
 import edu.hope.superresolution.models.LocationAcquisitionModel;
 import ij.ImagePlus;
-import ij.WindowManager;
 import ij.gui.ImageWindow;
 import ij.io.FileInfo;
 import ij.plugin.filter.PlugInFilter;
@@ -20,11 +18,7 @@ import ij.process.ImageProcessor;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
-import org.micromanager.utils.AutofocusManager;
-import org.micromanager.utils.MMException;
 
 
 /**
@@ -73,9 +67,9 @@ public class ExistingStackTrack_ implements PlugInFilter {
                     try {
                         //This will currently only register tracked fiducials
                         FiducialLocationModel fModel = locAcq_.pushNextFiducialLocationModel(imp_.getProcessor(), true);
-                        driftMap_.put(i, fModel.getAvgAbsoluteXPixelTranslation()); //This needs to be abstracted
-                    } catch(NoFiducialException ex) {
-                        IJMMReportingUtils.showError("Could Not Find a Fiducial!");
+                        //driftMap_.put(i, fModel.getAvgAbsoluteXPixelTranslation()); //This needs to be abstracted
+                    } catch(NoTrackException ex) {
+                        IJMMReportingUtils.showError("Could Not Find Track a Fiducial!");
                         
                     }
                     

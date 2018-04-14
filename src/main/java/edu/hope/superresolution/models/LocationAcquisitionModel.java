@@ -5,28 +5,21 @@
  */
 package edu.hope.superresolution.models;
 
-import edu.hope.superresolution.ImageJmodifieds.TwoSliceSelector;
 import edu.hope.superresolution.MMgaussianfitmods.datasubs.ExtendedGaussianInfo;
 import edu.hope.superresolution.Utils.IJMMReportingUtils;
 import edu.hope.superresolution.autofocus.FiducialAutoFocus;
 import edu.hope.superresolution.exceptions.NoFiducialException;
+import edu.hope.superresolution.exceptions.NoTrackException;
 import edu.hope.superresolution.genericstructures.VirtualDirectoryManager;
 import edu.hope.superresolution.livetrack.LiveTracking;
 import edu.hope.superresolution.views.FiducialSelectForm;
 import edu.hope.superresolution.views.ImageViewController;
-import edu.hope.superresolution.views.MicroscopeModelForm;
 import edu.hope.superresolution.views.ModifiedLocalizationParamForm;
-import edu.valelab.gaussianfit.utils.ReportingUtils;
-import ij.IJ;
 import ij.ImagePlus;
 import ij.gui.ImageWindow;
 import ij.process.ImageProcessor;
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.micromanager.api.ScriptInterface;
 import org.micromanager.utils.AutofocusManager;
 import org.micromanager.utils.MMException;
@@ -360,7 +353,7 @@ public class LocationAcquisitionModel {
      * @see #pushNextFiducialLocationModel(ij.process.ImageProcessor, boolean)  
      * 
      */
-    public FiducialLocationModel pushNextFiducialLocationModel( ImageProcessor iProc, boolean setSelected ) throws NoFiducialException {
+    public FiducialLocationModel pushNextFiducialLocationModel( ImageProcessor iProc, boolean setSelected ) throws NoTrackException {
                FiducialLocationModel locModel = null;
         if( /*areaUISelection_ ||*/ fLocationAcquisitions_.size() <= 0 ) {
             //Produce the GUIs and wait...
@@ -377,7 +370,7 @@ public class LocationAcquisitionModel {
                         /*new FiducialLocationModel( iProc, 
                     fLocationAcquisitions_.get( fLocationAcquisitions_.size() - 1 ),
                                                         uniqueAcquisitionTitle_ );*/
-            } catch (NoFiducialException ex) {
+            } catch (NoTrackException ex) {
                 throw ex;
             } 
         }
