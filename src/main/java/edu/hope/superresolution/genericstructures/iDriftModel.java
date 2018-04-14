@@ -7,34 +7,61 @@ package edu.hope.superresolution.genericstructures;
 
 import java.awt.Point;
 import java.awt.geom.Point2D;
+import java.io.Serializable;
 import javafx.geometry.Point3D;
 import org.apache.commons.math.geometry.Vector3D;
 
 /**
- *  Interface for retrieving Drift Information about a given Image Frame relative to some reference frame.
+ *  Extension of Serial Interface for retrieving Drift Information about a given Image Frame relative to some reference frame.
  *  It is not the concern of this interface model, what that reference frame is, since drift is always
  *  context pertinent, DriftModels are not expected to be stored or accessed without an understanding 
  *  of their context.
- * 
+ * <p>
  *  For the sake of Generality, this drift model assumes 3-axis drift and rotation for 
  *  a given frame.  Simplified extending classes such as 2DLinearDriftModel, reports 0 for all but X and Y translational elements.
+ * <p>
+ *  Note: Serialization is assumed to be implemented through all subclasses.  The Reason 
+ *  for this, is due to the nature of the data and its practical application being written 
+ *  to cross-application, or file storage streams.
  * 
  * @author Justin Hanselman
  */
-public interface iDriftModel {
+public interface iDriftModel extends Serializable {
     
     /**
      * Enumerated Values for Translational Drift units for an image.  Used to indicate how this DriftModel has stored its data.
      */
     public enum DriftUnits {
-        nm,
-        um,
-        mm,
-        m,
-        km,
-        Mm,
-        Gm,
-        pixels,        
+        nm(-9),
+        um(-6),
+        mm(-3),
+        m(0),
+        km(3),
+        Mm(6),
+        Gm(9),
+        pixels(Integer.MAX_VALUE); //Set to Max Value because we will never achieve such a large scale drift (assumed)
+        
+        private final int expValue_;
+        
+        DriftUnits( int expValue ) {
+            expValue_ = expValue;
+        }
+        
+        /**
+         * Generates the scale factor for standard units by determining From Instance * Scale Factor = To
+         * <p>
+         * Note, this is only for standard units.  If either unit is {@link DriftUnits#pixels}, then {@link Double#NaN} will be returned.
+         * 
+         * @param To
+         * @return The Scale Multiplier or NaN if the DriftUnits were not part of a standard set (i.e. pixels)
+         */
+        public double getUnitScaleFactor( DriftUnits To ) {
+            if( expValue_ != Integer.MAX_VALUE && To.expValue_ != Integer.MAX_VALUE ) {
+                return Math.pow(10, expValue_ - To.expValue_);
+            }
+            
+            return Double.NaN;
+        }
     }
     
     
@@ -127,5 +154,14 @@ public interface iDriftModel {
      * @return 
      */
     public Point3D getEulerRotationUncertainty();
+    
+    /**
+     * Generates a Pixel Converted DriftModel based off of the pixel 
+     * @param pixelSize - The Size of a pixel
+     * @param unit - The unit for the pixelSize
+     * @return 
+     */
+    public iDriftModel generatePixelConversion( int pixelSize, DriftUnits unit);
+   
     
 }

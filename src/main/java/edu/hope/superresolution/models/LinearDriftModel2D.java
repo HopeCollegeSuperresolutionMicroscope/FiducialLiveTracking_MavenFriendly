@@ -102,6 +102,26 @@ public class LinearDriftModel2D implements iDriftModel {
     public Point3D getEulerRotationUncertainty() {
         return nonRotations_;
     }
+
+    /**
+     * Generates a Pixel conversion of this driftModel.  If this DriftModel is already in units
+     * {@link DriftUnits#pixels}, then the object is returned with nothing done to it.
+     * 
+     * @param pixelSize
+     * @param unit
+     * @return 
+     */
+    @Override
+    public iDriftModel generatePixelConversion(int pixelSize, DriftUnits unit) {
+        if( unit_ == iDriftModel.DriftUnits.pixels || unit == iDriftModel.DriftUnits.pixels ) {
+            return this;
+        }
+        
+        double pixel = (unit.getUnitScaleFactor(unit_) * pixelSize);
+        
+        return new LinearDriftModel2D( frameNum_, xFromStartTranslation_ / pixel, xTranslationUncertainty_ / pixel,
+                                            yFromStartTranslation_ / pixel,  yTranslationUncertainty_ / pixel, iDriftModel.DriftUnits.pixels );
+    }
     
     
     
