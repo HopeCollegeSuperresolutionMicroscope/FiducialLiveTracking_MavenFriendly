@@ -5,41 +5,7 @@
  */
 package edu.hope.superresolution.Utils;
 
-import edu.valelab.gaussianfit.utils.NumberUtils;
-import edu.valelab.gaussianfit.utils.P2D;
-import java.awt.BasicStroke;
-import java.awt.Color;
-import java.awt.Shape;
-import java.awt.geom.Ellipse2D;
-import java.awt.geom.Point2D;
-import java.awt.geom.Rectangle2D;
-import java.util.ArrayList;
-import org.apache.commons.math.linear.Array2DRowRealMatrix;
-import org.apache.commons.math.linear.RealMatrix;
-import org.apache.commons.math.linear.SingularValueDecompositionImpl;
-import org.apache.commons.math.stat.StatUtils;
-import org.jfree.chart.ChartFactory;
-import org.jfree.chart.ChartFrame;
-import org.jfree.chart.JFreeChart;
-import org.jfree.chart.annotations.XYPointerAnnotation;
-import org.jfree.chart.axis.LogAxis;
-import org.jfree.chart.axis.NumberAxis;
-import org.jfree.chart.axis.NumberTickUnit;
-import org.jfree.chart.axis.ValueAxis;
-import org.jfree.chart.plot.DatasetRenderingOrder;
-import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.chart.plot.XYPlot;
-import org.jfree.chart.renderer.xy.StandardXYBarPainter;
-import org.jfree.chart.renderer.xy.StandardXYItemRenderer;
-import org.jfree.chart.renderer.xy.XYBarRenderer;
-import org.jfree.chart.renderer.xy.XYItemRenderer;
-import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
-import org.jfree.data.function.Function2D;
-import org.jfree.data.general.DatasetUtilities;
-import org.jfree.data.statistics.HistogramDataset;
-import org.jfree.data.xy.XYSeries;
-import org.jfree.data.xy.XYSeriesCollection;
-import org.jfree.ui.TextAnchor;
+import org.apache.commons.math3.distribution.NormalDistribution;
 
 /**
  *  Modified Utility Class from Localization Microscopy to produce Better Gaussian Results
@@ -58,8 +24,29 @@ public class AdditionalGaussianUtils {
    public static final int S1 = 4;
    public static final int S2 = 5;
    public static final int S3 = 6;
+   
+   //initialize a Normal Distribution for generation of Z Scores
+   private static final NormalDistribution basicNormalDistribution_ = new NormalDistribution(0, 1);
 
-     /**
+   /**
+    * Produces the Z* associated with a 0 centered NormalDistribution.  This is the 
+    * same Z* that is quoted in most z-Score Tables.  Assumes 2Tail distribution.
+    * <p>
+    * Thread-safe by virtual of finality and local implementation of NormalDistribution functions
+    * 
+    * @param CI - The Confidence interval (&lt;1 and &gt;0)
+    * @return The inverseCumulativeProbability for a 0-centered, 1 std-Dev Gaussian Function (Z*)
+    */
+   public static double produceZScoreFromCI( double CI ) {
+       
+       //Adjust CI for one side since this is assumed centered
+       CI = Math.abs((1 - CI)/2) + CI;
+       
+       return basicNormalDistribution_.inverseCumulativeProbability(CI);
+       
+   }
+   
+   /**
     * Gaussian function of the form:
     * A *  exp(-((x-xc)^2+(y-yc)^2)/(2 sigy^2))+b^2
     * A = params[INT]  (amplitude)
