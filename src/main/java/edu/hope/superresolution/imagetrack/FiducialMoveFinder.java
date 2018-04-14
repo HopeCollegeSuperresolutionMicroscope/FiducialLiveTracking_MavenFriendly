@@ -180,6 +180,7 @@ public class FiducialMoveFinder {
                     //If Not Virtual, let it affect FailRatio
                     ++numRealAreas;
                 }
+                //This can produce NoFiducial Results, however, the spotMatchThreads account for this
                 curFAreas.add( FiducialArea.createLinkedFiducialArea(curIP, trackArea, fArea));
                 }
                 finally {
@@ -192,7 +193,7 @@ public class FiducialMoveFinder {
             }*/
         }
         
-        return CorrelateDifferences( prevFAreas, curFAreas );
+        return CorrelateTrackSelectedParticles( prevFAreas, curFAreas );
         
     }
     
@@ -211,7 +212,7 @@ public class FiducialMoveFinder {
      * @return - The best case match case, or null if nothing could be tracked.  Please note, as tracking is still subjective, this may return a bad track.
      * @see #SelectMatch(java.util.List, com.google.common.util.concurrent.AtomicDouble, com.google.common.util.concurrent.AtomicDouble, double) 
      */
-    public TravelMatchCase CorrelateDifferences(List<FiducialArea> prevFAreas, List<FiducialArea> curFAreas) {
+    public TravelMatchCase CorrelateTrackSelectedParticles(List<FiducialArea> prevFAreas, List<FiducialArea> curFAreas) {
 
         assert(prevFAreas.size() > 0 );
         assert( prevFAreas.size() == curFAreas.size());
