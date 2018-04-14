@@ -213,7 +213,10 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         
         //For consistency, copy currentSelected FiducialArea too
         selectedAreaIndex_ = fLocationModel.selectedAreaIndex_;
-        selectedFiducialArea_ = fiducialAreaList_.get( selectedAreaIndex_ );
+        //check to see if nothing was selected 
+        if( selectedAreaIndex_ >= 0 ) {
+            selectedFiducialArea_ = fiducialAreaList_.get( selectedAreaIndex_ );
+        }
 
     }
     
@@ -371,14 +374,14 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
             }              
         }
         
-        double totalXUncertainty = 0;
-        double totalYUncertainty = 0;
+        double totalXUncertainty = avgXUncertainty;
+        double totalYUncertainty = avgYUncertainty;
         
         if( numReliable > 1 ) {
             avgRelXPixelTranslateStdDev = Math.sqrt(avgRelXPixelTranslateStdDev/(numReliable - 1));
             avgRelYPixelTranslateStdDev = Math.sqrt(avgRelYPixelTranslateStdDev/(numReliable - 1));
-            totalXUncertainty = computeCIUncertainty(avgRelXPixelTranslateStdDev, numReliable);
-            totalYUncertainty = computeCIUncertainty(avgRelYPixelTranslateStdDev, numReliable);
+            totalXUncertainty += computeCIUncertainty(avgRelXPixelTranslateStdDev, numReliable);
+            totalYUncertainty += computeCIUncertainty(avgRelYPixelTranslateStdDev, numReliable);
         } else{
             //We'll use zero for the sake of adding other uncertainties
             avgRelXPixelTranslateStdDev = 0;
@@ -386,11 +389,8 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         }
         
         //Store the number of particles that were used
+        //Indicates if CI was available in uncertainty calculation
         validStatisticalDriftParticles_ = numReliable;
-        
-        //add the uncertainty to the CI from above
-        totalXUncertainty += avgXUncertainty;
-        totalYUncertainty += avgYUncertainty;
         
         //Create Relative and absolute Drift Info
         relativeToLastModelDriftInfo_ = new LinearDriftModel2D(acquisitionTrackNumber_, avgXTranslate, totalXUncertainty, avgYTranslate, totalYUncertainty, iDriftModel.DriftUnits.nm);
@@ -508,10 +508,23 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         return fiducialAreaList_;
     }
     
+    /**
+     * Get the current selected FiducialArea for the model
+     * <p>
+     * {@link #getSelectedFiducialAreaIndex() } will show the current location of the index within the list of fiducial areas.  This is 
+     * subject to change with remove operations and such and so is left to the caller to determine its importance.
+     * 
+     * @return A FiducialArea instance or null if no FiducialArea is selected 
+     */
     public FiducialArea getSelectedFiducialArea() {
         return selectedFiducialArea_;
     }
     
+    /**
+     * Get the index of the FiducialArea relative to the list of FiducialAreas in this FiducialLocationModel
+     * 
+     * @return index of the FiducialArea in the list currently, or -1 if no fiducial area is selected. 
+     */
     public int getSelectedFiducialAreaIndex() {
         return selectedAreaIndex_;
     }

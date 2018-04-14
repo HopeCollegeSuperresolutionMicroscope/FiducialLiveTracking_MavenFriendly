@@ -678,7 +678,6 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
         for( int i = min; i <= max && i >=0; i++ ) {
             if( lsm.isSelectedIndex(i) ) {
                 removeModelFiducialElement(i);
-                selectedFiducials_.remove(i);
             }
         }
 
