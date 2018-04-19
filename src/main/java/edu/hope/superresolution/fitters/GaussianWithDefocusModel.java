@@ -26,7 +26,7 @@ import org.apache.commons.math3.util.Pair;
  *   an assumed Gaussian with Zernike[2,0] polynomial (defocus) term added
  *   This takes a search area of the airy disk, and may be shrunk to improve Quadratic Fit.
  *   May be convoluted with an edge defining kernel to better represent points.
- * @author Microscope
+ * @author Justin Hanselman
  */
 class GaussianWithDefocusModel implements MultivariateJacobianFunction {
 

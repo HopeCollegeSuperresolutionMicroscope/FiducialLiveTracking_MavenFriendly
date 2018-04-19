@@ -15,7 +15,7 @@ import edu.hope.superresolution.models.FiducialArea;
  *    spotRef_  -  the spot compared for translation
  *    areaOwnerRef_  - the Fiducial Area to which this spot belongs 
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class FiducialTravelDiff2D {
     

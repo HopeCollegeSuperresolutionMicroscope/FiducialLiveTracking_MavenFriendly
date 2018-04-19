@@ -14,7 +14,7 @@ import ij.process.ImageProcessor;
  *  Class that calculates and stores a bounded Roi that will encompass a given spot
  *   This is used for visual and two-dimensional search premises
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class BoundedSpotData extends SpotData {
     

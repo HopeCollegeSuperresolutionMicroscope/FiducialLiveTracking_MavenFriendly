@@ -9,7 +9,7 @@ import java.awt.Dimension;
 
 /**
  *
- * @author Desig
+ * @author Justin Hanselman
  */
 public class LocationAcquisitionPropertyPanel extends javax.swing.JPanel {
 

@@ -16,7 +16,7 @@ import edu.hope.superresolution.views.MicroscopeModelForm;
  *   User-Changeable Parameters...  This Actually Makes no sense currently,
  *   But For Other Implementations, may be useful
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class GaussianFitParamModel extends ModelUpdateDispatcher implements ProcessorParamModel {
 

@@ -5,12 +5,14 @@
  */
 package edu.hope.superresolution.views;
 
+import edu.hope.superresolution.Utils.IJMMReportingUtils;
 import edu.hope.superresolution.livetrack.LiveTracking;
 import edu.hope.superresolution.models.FiducialArea;
 import edu.hope.superresolution.models.ModelUpdateListener;
 import edu.hope.superresolution.models.FiducialLocationModel;
 import edu.hope.superresolution.models.LocationAcquisitionModel;
 import edu.hope.superresolution.models.ModelUpdateDispatcher;
+import ij.ImagePlus;
 import ij.gui.ImageWindow;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
@@ -21,6 +23,9 @@ import javax.swing.DefaultListModel;
 import javax.swing.JFrame;
 import javax.swing.JRadioButton;
 import javax.swing.ListSelectionModel;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.table.DefaultTableModel;
 import org.micromanager.api.ScriptInterface;
 import org.micromanager.utils.ReportingUtils;
 
@@ -29,17 +34,36 @@ import org.micromanager.utils.ReportingUtils;
  * <p>
  *  Minimum Method Call Sequence: Constructor(), registerModelUpdateListener()
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdateListener {
 
     private boolean WINDOW_OPEN = true;
+    //boolean for stopping nested event calls.  MVC needs rewrite, but this is a solution for current codebase
+    //@see isNestedEvent
+    private boolean firstNestedEvent_ = false;
     
     private final LiveTracking pluginInstance_;
     private FiducialLocationModel fLocationModel_ = null;  //Reference to fiducialLocationModel
     private LocationAcquisitionModel.AcquisitionSubmitAction subAction_;
     
-    private DefaultListModel fiducialList_ = new DefaultListModel();
+    public class FiducialAreaTableModel extends DefaultTableModel {
+        
+        public FiducialAreaTableModel() {
+            super();
+        }
+        
+        public FiducialAreaTableModel( Object[] columnNames, int rowCount) {
+            super(columnNames, rowCount);
+        }
+        
+        void addRow( FiducialListElement elem  ) {
+            addRow( new Object[] {elem, elem.getStatus().toString() } );
+        }
+        
+    }
+    
+    private FiducialAreaTableModel fiducialList_ = new FiducialAreaTableModel(new String[]{ "Fiducial Areas", "Status"}, 0 );
     private HashSet<Integer> selectedFiducials_ = new HashSet<Integer>();
     private Integer curEditIdx_ = -1;  //Current Index Being Edited (Since It's a single Selection Thing
     private ImageWindow selectWindow_;
@@ -53,7 +77,7 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
     private fAreaDisplayBoxRadioHandler displayBoxRadioButtonListener_ = new fAreaDisplayBoxRadioHandler();
     
     //Base String to append Index values to
-    String LIST_FIDUCIAL_BASE_STR = "Fiducial ";
+    public static String LIST_FIDUCIAL_BASE_STR = "Fiducial ";
 
     /**
      * Callback that vets any registrations that are not from the expected models.
@@ -108,11 +132,19 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
      * Helper Class For List Elements, their correspondence to a listmodel for Fiducial Areas,
      * and their labels.
      */
-    private class FiducialListElement {
+    private static class FiducialListElement {
+        
+        public enum FiducialStatus {
+            No_Area,
+            None_Found,
+            Found            
+        }
         
         int idx_;
         String nameStr_;
         String base_;
+        FiducialStatus status_;
+        
        
         /**
          *  Creates a FiducialListElement with the default label (LIST_FIDUCIAL_BASE_STR)
@@ -125,6 +157,7 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
             base_ = LIST_FIDUCIAL_BASE_STR;
             idx_ = idx;
             setNameStr( );
+            status_ = FiducialStatus.No_Area;
         }
         
         /**
@@ -138,6 +171,7 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
             base_ = baseNameStr;
             idx_ = idx;
             setNameStr( );
+            status_ = FiducialStatus.No_Area;
             //nameStr_ = baseNameStr + idx;
 
         }
@@ -169,6 +203,36 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
             return idx_;
         }
         
+        /**
+         * Gets the status of the current area
+         * 
+         * @return 
+         */
+        public FiducialStatus getStatus() {
+            return status_;
+        }
+        
+        /**
+         * Sets the status of the current Fiducial Element
+         */
+        public void setStatus( FiducialStatus status) {
+            status_ = status;
+        }
+        
+        /**
+         * Sets the status of the Fiducial element based off of the Fiducial Area
+         * @param fArea 
+         */
+        public void setStatus( FiducialArea fArea ) {
+            if( fArea.getSelectionArea() == null ) {
+                status_ = FiducialStatus.No_Area;
+            } else if( fArea.getSelectedSpot() != null ) {
+                status_ = FiducialStatus.Found;
+            } else {
+                status_ = FiducialStatus.None_Found;
+            }
+        }
+        
         @Override
         public String toString() {
             return nameStr_;
@@ -198,6 +262,17 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
         
         initComponents();
         
+        //add new Table Model (Redundant but GUI builder adds a bug if this is done then)
+        fiducialAreaList_.setModel( fiducialList_ );
+        fiducialAreaList_.getSelectionModel().addListSelectionListener( new ListSelectionListener() {
+            @Override
+            public void valueChanged(ListSelectionEvent lse) {
+                fiducialAreaList_ValueChanged(lse);
+            }
+        });
+        //Modify the list selection model to allow for callbacks on selection events
+        
+        
         minimumNumFidForTracks_ = Integer.parseInt( minFiducialTrackNumTextField_.getText() );
     }
 
@@ -218,9 +293,6 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
         fittingParamBut = new javax.swing.JButton();
         jPanel2 = new javax.swing.JPanel();
         jLabel2 = new javax.swing.JLabel();
-        jScrollPane1 = new javax.swing.JScrollPane();
-        //JList of Object
-        fiducialAreaList_ = new javax.swing.JList( fiducialList_ );
         addFiducialBut = new javax.swing.JButton();
         removeFiducialBut = new javax.swing.JButton();
         jToggleButton1 = new javax.swing.JToggleButton();
@@ -230,6 +302,8 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
         minFiducialTrackNumTextField_ = new javax.swing.JTextField();
         jLabel3 = new javax.swing.JLabel();
         refreshButton_ = new javax.swing.JButton();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        fiducialAreaList_ = new javax.swing.JTable();
         jButton4 = new javax.swing.JButton();
         CancelButton_ = new javax.swing.JButton();
 
@@ -287,16 +361,6 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
 
         jLabel2.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
         jLabel2.setText("Fiducial List");
-
-        fiducialAreaList_.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
-        fiducialAreaList_.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
-        fiducialAreaList_.setSelectionMode( ListSelectionModel.SINGLE_SELECTION );
-        fiducialAreaList_.addListSelectionListener(new javax.swing.event.ListSelectionListener() {
-            public void valueChanged(javax.swing.event.ListSelectionEvent evt) {
-                fiducialAreaList_ValueChanged(evt);
-            }
-        });
-        jScrollPane1.setViewportView(fiducialAreaList_);
 
         addFiducialBut.setText("Add");
         addFiducialBut.addActionListener(new java.awt.event.ActionListener() {
@@ -372,6 +436,28 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
             }
         });
 
+        fiducialAreaList_.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+
+            },
+            new String [] {
+                "Fiducial Name", "Status"
+            }
+        ) {
+            boolean[] canEdit = new boolean [] {
+                false, false
+            };
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
+        fiducialAreaList_.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+        jScrollPane2.setViewportView(fiducialAreaList_);
+        if (fiducialAreaList_.getColumnModel().getColumnCount() > 0) {
+            fiducialAreaList_.getColumnModel().getColumn(1).setResizable(false);
+        }
+
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
@@ -384,7 +470,7 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
                         .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(jLabel2)
                             .addGroup(jPanel2Layout.createSequentialGroup()
-                                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 285, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 285, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                     .addComponent(addFiducialBut, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -413,13 +499,13 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
                         .addComponent(refreshButton_)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                         .addComponent(jRadioButton2)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(jRadioButton3)
                         .addGap(3, 3, 3)
                         .addComponent(jToggleButton1)
                         .addGap(27, 27, 27))
                     .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 173, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 179, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
                 .addComponent(jPanel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
@@ -443,23 +529,20 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                        .addGap(0, 0, Short.MAX_VALUE)
+                        .addContainerGap()
                         .addComponent(CancelButton_)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jButton4))
-                    .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                            .addComponent(jPanel1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jPanel2, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                        .addGap(0, 0, Short.MAX_VALUE)))
-                .addContainerGap())
+                        .addComponent(jButton4)))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, 34, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, 43, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -471,79 +554,6 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
-
-    private void addFiducialButActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_addFiducialButActionPerformed
-        //Modify List Model
-        addModelFiducialElement();
-       
-    }//GEN-LAST:event_addFiducialButActionPerformed
-
-    /**
-     * When the list Selection Model changes selection states.  Used to Call Removals
-     * 
-     * @param evt 
-     */
-    private void fiducialAreaList_ValueChanged(javax.swing.event.ListSelectionEvent evt) {//GEN-FIRST:event_fiducialAreaList_ValueChanged
-
-        //We are only interested in final valueChanges currently
-        if( evt.getValueIsAdjusting() == false ) {
-            //Get The SelectionModel
-            ListSelectionModel lsm = fiducialAreaList_.getSelectionModel();
-
-            //General Selection Procedure in case we swith to multiple selection later
-            int min = lsm.getMinSelectionIndex();
-            int max = lsm.getMaxSelectionIndex();
-
-            //boolean since there's no guarantee of which index comes first
-            boolean prevRoiCleared = false;
-            
-            for (int i = min; i <= max; i++) {
-                //If selected and was not already selected
-                if ( lsm.isSelectedIndex(i)  /*&& !selectedFiducials_.contains(i) */ ) {
-            
-                    //Display ROIs
-                    //Enable Editing an area only if there's one
-                    if (min == max ) {
-                        //Select the new FiducialArea
-                       fLocationModel_.setSelectedFiducialArea(i);
-                    }
-                    else {  //Display All Other Selected Elements
-                        //For Later, Multi-Selection                  
-                    }
-                }
-                else if ( selectedFiducials_.contains(i) && prevRoiCleared ) {
-                    //Store the ROI as a value to be manipulated later and then clear it
-                    //Should do a DeSelect Operation Once we're using Multiple
-                    selectedFiducials_.remove(i);
-                }
-            }    
-        }
-
-    }//GEN-LAST:event_fiducialAreaList_ValueChanged
-
-    /**
-     * When the remove button is clicked, removes the selected FiducialArea from 
-     *  list model.
-     * 
-     * @param evt 
-     */
-    private void removeFiducialButActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_removeFiducialButActionPerformed
-
-        ListSelectionModel lsm = fiducialAreaList_.getSelectionModel();
-        
-        int min = lsm.getMinSelectionIndex();
-        int max = lsm.getMaxSelectionIndex();
-        
-        for( int i = min; i <= max; i++ ) {
-            if( lsm.isSelectedIndex(i) ) {
-                removeModelFiducialElement(i);
-                selectedFiducials_.remove(i);
-            }
-        }
-        //Clear All Selections Listeners should be aware of this and accoutn for it
-        lsm.clearSelection();
-
-    }//GEN-LAST:event_removeFiducialButActionPerformed
 
     /**
      * When the Fitting Parameters Button is Clicked, Shows the Form.
@@ -566,8 +576,8 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
      * @param evt 
      */
     private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
-        if( fiducialList_.size() < 3 ) {
-            ReportingUtils.showMessage( "You must Select at least 3 Fiducials!");
+        if( fiducialList_.getRowCount() < 3 ) {
+            IJMMReportingUtils.showMessage( "You must Select at least 3 Fiducials!");
             return;
         }
         fLocationModel_.setMinNumFiducialTracks( minimumNumFidForTracks_ );
@@ -583,46 +593,7 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
         // TODO add your handling code here:
     }//GEN-LAST:event_jButton1ActionPerformed
 
-    /**
-     *  When the Toggle Button is clicked to show all Fiducial Areas or just the currently selected one
-     * 
-     * @param evt 
-     */
-    private void jToggleButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jToggleButton1ActionPerformed
-        showAllButtonOn_ = !(showAllButtonOn_);
-        fLocationModel_.enableShowAll( showAllButtonOn_ );
-    }//GEN-LAST:event_jToggleButton1ActionPerformed
-
-    /**
-     * When the Minimum Fiducial Track Number Text field is edited, performs verification 
-     * and storage of the value that is validated.
-     * 
-     * @param evt 
-     */
-    private void minFiducialTrackNumTextField_ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_minFiducialTrackNumTextField_ActionPerformed
-        int temp = Integer.parseInt( minFiducialTrackNumTextField_.getText() );
-        if( temp < 1 ) {
-            temp = 1;
-            minFiducialTrackNumTextField_.setText( Integer.toString(temp) );
-        } else if( temp > fiducialList_.size() ) {        
-            temp = fiducialList_.size();
-            minFiducialTrackNumTextField_.setText( Integer.toString(temp) );
-        }
-        
-        minimumNumFidForTracks_ = temp;
-        
-    }//GEN-LAST:event_minFiducialTrackNumTextField_ActionPerformed
-
-    /**
-     *  Refreshes All Fiducial Areas (Including New Fits) by adding the current ImagePlus if it is new
-     * 
-     * @param evt - Button was clicked
-     */
-    private void refreshButton_ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_refreshButton_ActionPerformed
-        refreshClicked_ = true;    
-        refreshClicked_ = fLocationModel_.updateImagePlus( selectWindow_.getImagePlus() );  
-    }//GEN-LAST:event_refreshButton_ActionPerformed
-
+    static int i = 0;
     private void CancelButton_ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_CancelButton_ActionPerformed
         dispose();
     }//GEN-LAST:event_CancelButton_ActionPerformed
@@ -635,7 +606,10 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
         if( WINDOW_OPEN ) {
             WINDOW_OPEN = false;
             this.setVisible( false );
-            pluginInstance_.dispose();
+            //To Be changed later, but assumes other instances are passed
+            if( pluginInstance_ != null ) {
+                pluginInstance_.dispose();
+            }
         }
     }//GEN-LAST:event_formWindowClosing
 
@@ -643,20 +617,117 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
        WINDOW_OPEN = true;
     }//GEN-LAST:event_formWindowOpened
 
+    /**
+     *  Refreshes All Fiducial Areas (Including New Fits) by adding the current ImagePlus if it is new
+     * 
+     * @param evt - Button was clicked
+     */
+    private void refreshButton_ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_refreshButton_ActionPerformed
+        refreshClicked_ = true;
+        //refreshClicked_ = fLocationModel_.updateImagePlus( selectWindow_.getImagePlus() );
+        //This should allow for discrepancies in current slice.  I.e. starting on slice 10 in a stack
+        refreshClicked_ = fLocationModel_.updateImageProcessor( selectWindow_.getImagePlus().getProcessor() );
+    }//GEN-LAST:event_refreshButton_ActionPerformed
+
+    /**
+     * When the Minimum Fiducial Track Number Text field is edited, performs verification 
+     * and storage of the value that is validated.
+     * 
+     * @param evt 
+     */
+    private void minFiducialTrackNumTextField_ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_minFiducialTrackNumTextField_ActionPerformed
+        int temp = Integer.parseInt( minFiducialTrackNumTextField_.getText() );
+        if( temp < 1 ) {
+            temp = 1;
+            minFiducialTrackNumTextField_.setText( Integer.toString(temp) );
+        } else if( temp > fiducialList_.getRowCount() ) {
+            temp = fiducialList_.getRowCount();
+            minFiducialTrackNumTextField_.setText( Integer.toString(temp) );
+        }
+
+        minimumNumFidForTracks_ = temp;
+    }//GEN-LAST:event_minFiducialTrackNumTextField_ActionPerformed
+
     private void jRadioButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jRadioButton3ActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_jRadioButton3ActionPerformed
 
     /**
-     * Add A FiducialArea to the LocationModel. Further interactions occur as response 
-     * to a broadcast of an addition.
+     *  When the Toggle Button is clicked to show all Fiducial Areas or just the currently selected one
+     * 
+     * @param evt 
+     */
+    private void jToggleButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jToggleButton1ActionPerformed
+        showAllButtonOn_ = !(showAllButtonOn_);
+        fLocationModel_.enableShowAll( showAllButtonOn_ );
+    }//GEN-LAST:event_jToggleButton1ActionPerformed
+
+    /**
+     * When the remove button is clicked, removes the selected FiducialArea from 
+     *  list model.
+     * 
+     * @param evt 
+     */
+    private void removeFiducialButActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_removeFiducialButActionPerformed
+
+        ListSelectionModel lsm = fiducialAreaList_.getSelectionModel();
+
+        int min = lsm.getMinSelectionIndex();
+        int max = lsm.getMaxSelectionIndex();
+
+        for( int i = min; i <= max && i >=0; i++ ) {
+            if( lsm.isSelectedIndex(i) ) {
+                removeModelFiducialElement(i);
+                selectedFiducials_.remove(i);
+            }
+        }
+
+        //Clear All Selections, Listeners will be updated for this and account for it
+        lsm.clearSelection();
+    }//GEN-LAST:event_removeFiducialButActionPerformed
+
+    private void addFiducialButActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_addFiducialButActionPerformed
+        //Modify List Model
+        addModelFiducialElement();
+    }//GEN-LAST:event_addFiducialButActionPerformed
+
+    /**
+     * Add A FiducialArea to the LocationModel if the current Selected Fidcuial Model isn't a placeholder.
+     * Further interactions occur as response to an actual broadcast of an addition from the model.
      * 
      * @see #onModelFiducialElementAdd() 
      */
     private void addModelFiducialElement() {
-        fLocationModel_.addFiducialArea();
-    }
+        //Clean Up code to make sure we're not populating the fLocationModel with null value models
+        /*boolean unusedFiducialElement = false;
+        FiducialArea selFArea = fLocationModel_.getSelectedFiducialArea();
+        if( selFArea != null ) {
+            unusedFiducialElement = (selFArea.getSelectionArea() == null);
+        }
+        if( !unusedFiducialElement ) {
+            fLocationModel_.addFiducialArea();
+        }*/
+        if( verifyCurrentFiducials() ) {
+            fLocationModel_.addFiducialArea();
+        }
+    } 
     
+    /**
+     * Verifies that the Current Fiducials are in a Found State
+     * Used for diverting modifications to the model
+     * @return 
+     */
+    private boolean verifyCurrentFiducials() {
+        
+        for (int row = 0; row < fiducialList_.getRowCount(); row++) {
+            if( fiducialList_.getValueAt(row, 1) != FiducialListElement.FiducialStatus.Found.toString() ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     /**
      * Event Response:  FiducialLocationModel Fiducial Area was Added
      */
@@ -694,51 +765,125 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
     
     /**
      *  Response To A Broadcast from the FiducialLocationModel that A Fiducial Area has been selected.
-     *   This only performs a response on refresh, by reevaluating and removing FiducialAreas from the
-     *   listmodel that have no selectedFiducials due to a change.
+     *   This only responds to Refresh actions, and updates the status of the Fiducial Elements
      */
     private void onFiducialAreaDataChanged() {
-        if (refreshClicked_) {
-            ij.IJ.log("In Data Change");
-            List<FiducialArea> fAreas = fLocationModel_.getFiducialAreaList();
-            int count = 0;
-            for (int i = 0; i < fAreas.size(); ++i) {
-                FiducialArea fArea = fAreas.get(i);
-                if (fArea.getAllRawPossibleSpots().size() == 0) {
-                    removeModelFiducialElement(i);
-                    selectedFiducials_.remove(i);
-                    count++;
-                }
-            }
-            if (count > 0) {
-                ReportingUtils.showMessage(count + " Fiducial Areas removed for no spots!");
+        //if (refreshClicked_) {
+            int badCount = refreshStatus();
+            if ( badCount > 0) {
+                //IJMMReportingUtils.showMessage(badCount + " Fiducial Areas cannot find a fiducial!");
+                ij.IJ.log(badCount + " Fiducial cannot find a fiducial!");
             }
             refreshClicked_ = false;
-        }
+        //}
+    }
+    
+    /**
+     * Refreshes the statuses of the Fiducial Areas that are being selected
+     * 
+     * @returns The number of statuses that are not in an accepatable state (Fiducial Found)
+     */
+    private int refreshStatus() {
+        List<FiducialArea> fAreas = fLocationModel_.getFiducialAreaList();
+        int count = 0;
+        for (int i = 0; i < fAreas.size(); ++i) {
+                FiducialArea fArea = fAreas.get(i);
+                if( fArea.getSelectionArea() == null ) {
+                    fiducialList_.setValueAt(FiducialListElement.FiducialStatus.No_Area.toString(), i, 1);
+                    count++;
+                } else if (fArea.getAllRawPossibleSpots().size() == 0) {
+                    fiducialList_.setValueAt( FiducialListElement.FiducialStatus.None_Found.toString(), i, 1);
+                    count++;
+                } else {
+                    fiducialList_.setValueAt(FiducialListElement.FiducialStatus.Found.toString(), i, 1);
+                }
+            }
+        
+        return count;
     }
     
     /**
      *  Refreshes the entire list and its holdings based on the fLocationModel
-     *    Since this is just a semantic value, just update the number
+     *    Since this is just a semantic value for available indices, just update the number
      * 
      */
     private void refreshList(  ) {
         List<FiducialArea> list = fLocationModel_.getFiducialAreaList();
-        int diff = fiducialList_.size() - list.size();
+        int diff = fiducialList_.getRowCount() - list.size();
         if( diff >= 0 ) {
             for (; diff > 0; --diff) {
                 //Remove from end, to guarantee order
-                fiducialList_.removeElementAt(fiducialList_.size() - 1);
+                fiducialList_.removeRow(fiducialList_.getRowCount() - 1);
             }
         }
         else {
             for( int i = 0; i < diff*-1; i++ ) {
-                fiducialList_.addElement( new FiducialListElement( fiducialList_.size() + i ) );
+                //TODO CHANGE THIS::::
+                fiducialList_.addRow( new FiducialListElement( fiducialList_.getRowCount()+ i ));
+
             }
         }
+        refreshStatus();
         
     }
 
+     /**
+
+     * When the list Selection Model changes selection states.  Used to Call Removals
+
+     * 
+
+     * @param evt 
+
+     */
+
+    private void fiducialAreaList_ValueChanged(javax.swing.event.ListSelectionEvent evt) {                                               
+
+        //We are only interested in final valueChanges currently
+
+        if( evt.getValueIsAdjusting() == false ) {
+
+            //Get The SelectionModel
+            ListSelectionModel lsm = fiducialAreaList_.getSelectionModel();
+            
+            //General Selection Procedure in case we swith to multiple selection later
+            int min = lsm.getMinSelectionIndex();
+            int max = lsm.getMaxSelectionIndex();
+
+            //boolean since there's no guarantee of which index comes first
+            boolean prevRoiCleared = false;
+
+            for (int i = min; i <= max; i++) {
+
+                //If selected and was not already selected
+
+                if ( lsm.isSelectedIndex(i)  /*&& !selectedFiducials_.contains(i) */ ) {
+
+                    //Display ROIs
+                    //Enable Editing an area only if there's one
+                    if (min == max ) {
+                        //Select the new FiducialArea
+                       fLocationModel_.setSelectedFiducialArea(i);
+                    }
+                    else {  //Display All Other Selected Elements
+                        //For Later, Multi-Selection                  
+                    }
+
+                }
+                else if ( selectedFiducials_.contains(i) && prevRoiCleared ) {
+                    //Store the ROI as a value to be manipulated later and then clear it
+                    //Should do a DeSelect Operation Once we're using Multiple
+                    selectedFiducials_.remove(i);
+                }
+
+            }    
+
+        }
+
+
+
+    }
+    
     /**
      *  Sets A Fiducial Area as Selected based on its idx.
      * <p>
@@ -776,6 +921,12 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
                 case FiducialLocationModel.EVENT_FIDUCIAL_AREA_DATA_CHANGED:
                     onFiducialAreaDataChanged();
                     break;
+                case FiducialLocationModel.EVENT_FIDUCIAL_SELECTION_CHANGED:
+                    refreshStatus();
+                    break;
+                case FiducialLocationModel.EVENT_FIDCUIAL_REGION_CHANGED:
+                    refreshStatus();
+                    break;
                 case FiducialLocationModel.EVENT_ELEMENT_SET:  //Setting an Element's Properties has no effect
                     break;
             }
@@ -791,7 +942,7 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
     private javax.swing.JButton CancelButton_;
     private javax.swing.JButton addFiducialBut;
     private javax.swing.ButtonGroup buttonGroup1;
-    private javax.swing.JList fiducialAreaList_;
+    private javax.swing.JTable fiducialAreaList_;
     private javax.swing.JButton fittingParamBut;
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton4;
@@ -804,7 +955,7 @@ public class FiducialSelectForm extends javax.swing.JFrame implements ModelUpdat
     private javax.swing.JRadioButton jRadioButton1;
     private javax.swing.JRadioButton jRadioButton2;
     private javax.swing.JRadioButton jRadioButton3;
-    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JToggleButton jToggleButton1;
     private javax.swing.JTextField minFiducialTrackNumTextField_;
     private javax.swing.JButton refreshButton_;

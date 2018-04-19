@@ -15,7 +15,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /**
  *
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class ThreadSafeSelectionList<E> {
 

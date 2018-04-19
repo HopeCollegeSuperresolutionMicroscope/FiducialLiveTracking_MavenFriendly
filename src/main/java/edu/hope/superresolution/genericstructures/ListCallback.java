@@ -10,7 +10,7 @@ import java.util.List;
 /**
  *  Callback Interface for Interacting with List Objects that are being filled
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public interface ListCallback<T> {
     

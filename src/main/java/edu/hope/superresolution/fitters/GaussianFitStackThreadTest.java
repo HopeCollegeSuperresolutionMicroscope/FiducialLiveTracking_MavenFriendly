@@ -7,6 +7,7 @@ package edu.hope.superresolution.fitters;
 
 import edu.hope.superresolution.MMgaussianfitmods.datasubs.BoundedSpotData;
 import edu.hope.superresolution.Utils.AdditionalGaussianUtils;
+import edu.hope.superresolution.Utils.IJMMReportingUtils;
 import edu.hope.superresolution.Utils.ThompsonGaussianEstimationUtil;
 import edu.hope.superresolution.fitprocesses.FitProcessContainer;
 import edu.hope.superresolution.genericstructures.BlockingQueueEndConditionTest;
@@ -25,7 +26,7 @@ import org.micromanager.utils.ReportingUtils;
 
 /**
  *
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class GaussianFitStackThreadTest extends FitStackThread {
 
@@ -139,10 +140,10 @@ public class GaussianFitStackThreadTest extends FitStackThread {
                 //ij.IJ.log("Spot Fit Fell Through");
             }
          } catch (Exception ex) {
-            ReportingUtils.logError(ex);
-            ReportingUtils.logError("Thread run out of memory  " + 
+            IJMMReportingUtils.logError(ex);
+            IJMMReportingUtils.logError("Thread run out of memory  " + 
                     Thread.currentThread().getName());
-            ReportingUtils.showError("Fitter out of memory.\n" +
+            IJMMReportingUtils.showError("Fitter out of memory.\n" +
                     "Out of memory error");
             throw new IllegalThreadStateException( ex.getMessage() );
          }

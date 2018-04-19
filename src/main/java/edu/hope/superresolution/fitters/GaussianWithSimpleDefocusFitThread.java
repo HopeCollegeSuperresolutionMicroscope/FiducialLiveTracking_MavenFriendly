@@ -28,7 +28,7 @@ import java.util.concurrent.BlockingQueue;
  *  being initiated through init().  New Rois, even on the same image, would be better served with 
  *  a new instance of this thread with the Roi added.
  * 
- * @author Microscope
+ * @author Justin Hanselman
  * 
  * @see edu.hope.superresolution.fitters.GaussianFitStackThread
  * @see edu.hope.superresolution.fitters.GaussianFit

@@ -12,7 +12,7 @@ import edu.hope.superresolution.processors.iFiducialAreaProcessor;
  *  Interface for Implementing a Parameter Model for a Given Processor
  *    Example: See GaussianFit ParamModel and GaussianFitProcessor
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public interface ProcessorParamModel {
     

@@ -24,7 +24,7 @@ import ij.process.ImageProcessor;
  * Since this implementation is not as abstract as it can be, any new implementations 
  * must take care to modify code that is calling it, to use its indices and conventions.
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public interface FitProcessContainer {
 

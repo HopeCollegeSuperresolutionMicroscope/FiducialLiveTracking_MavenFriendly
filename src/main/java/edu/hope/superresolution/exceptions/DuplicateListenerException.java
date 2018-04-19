@@ -14,7 +14,7 @@ package edu.hope.superresolution.exceptions;
  *  Intended Specifically for ModelUpdateDispatcher registerModelUpdateListener().
  *
  * @see edu.hope.superresolution.models.ModelUpdateDispatcher#registerModelListener(edu.hope.superresolution.models.ModelUpdateListener) 
- * @author Desig
+ * @author Justin Hanselman
  */
 public class DuplicateListenerException extends RuntimeException {
     

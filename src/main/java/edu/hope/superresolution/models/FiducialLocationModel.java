@@ -5,19 +5,22 @@
  */
 package edu.hope.superresolution.models;
 
+import com.google.common.eventbus.Subscribe;
 import edu.hope.superresolution.MMgaussianfitmods.datasubs.BoundedSpotData;
 import edu.hope.superresolution.MMgaussianfitmods.datasubs.ExtendedGaussianInfo;
 import edu.hope.superresolution.Utils.CopyUtils;
+import edu.hope.superresolution.Utils.IJMMReportingUtils;
 import edu.hope.superresolution.exceptions.NoFiducialException;
+import edu.hope.superresolution.exceptions.NoTrackException;
 import edu.hope.superresolution.genericstructures.FiducialTravelDiff2D;
 import edu.hope.superresolution.genericstructures.TravelMatchCase;
 import edu.hope.superresolution.imagetrack.FiducialMoveFinder;
 import edu.hope.superresolution.processors.FiducialAreaProcessor;
-import ij.ImageListener;
 import ij.ImagePlus;
 import ij.gui.ImageWindow;
 import ij.gui.Roi;
 import ij.process.ImageProcessor;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -27,7 +30,7 @@ import org.micromanager.utils.ReportingUtils;
 
 /**
  *
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class FiducialLocationModel extends ModelUpdateDispatcher implements FiducialCollection {
     
@@ -39,9 +42,11 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
     public static final int EVENT_ELEMENT_MOD_FAILED = 4;
     public static final int EVENT_STORE_ROI_REQUEST = 5;
     public static final int EVENT_FIDUCIAL_AREA_DATA_CHANGED = 6;
-    public static final int EVENT_SHOW_ALL = 7;
-    public static final int EVENT_SHOW_CURRENT = 8;
-    public static final int EVENT_FIDUCIAL_BOX_DISPLAY_CHANGE = 9;
+    public static final int EVENT_FIDUCIAL_SELECTION_CHANGED = 7;
+    public static final int EVENT_FIDCUIAL_REGION_CHANGED = 8;
+    public static final int EVENT_SHOW_ALL = 9;
+    public static final int EVENT_SHOW_CURRENT = 10;
+    public static final int EVENT_FIDUCIAL_BOX_DISPLAY_CHANGE = 11;
     
     //Display Constants
     //Command Strings for Display Box Modes
@@ -63,7 +68,7 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
     private double avgAbsoluteYPixelTranslation_ = 0;
     
     private final List<FiducialArea> fiducialAreaList_ = Collections.synchronizedList( new ArrayList< FiducialArea >() );  //List of Selected Areas
-    private final FiducialChangeObserver fChangeObserver_ = new FiducialChangeObserver();
+    private final FiducialAreaCallback fAreaCallBack_ = new FiducialAreaCallback();
     private FiducialArea selectedFiducialArea_ = null;
     private int selectedAreaIndex_ = -1;
     private Roi currentRoi_ = null;  //placeholder for when there are no List Selections but an ROI
@@ -72,13 +77,14 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
     private FiducialAreaProcessor fAreaProcessor_;
     private ImagePlus ip_;
     private FiducialMoveFinder fMoveFinder_ = null;
-    private final String acquisitionTitle_; //Used For Displays Correspondings to the owning Acquisition
     
     private boolean showAll_ = false;  //Whether or not to show all changes or only current selected Fiducial Area    
+    private final String acquisitionTitle_;
     
     //Loose Implementation of Listeners with update Method that will be called
     //These Views require a reference to the model, to do their own updating
-    public FiducialLocationModel( ImagePlus ip, FiducialAreaProcessor fAreaProcessor, String acquisitionTitle ) {
+    public FiducialLocationModel( ImagePlus ip, FiducialAreaProcessor fAreaProcessor, 
+                                    String acquisitionTitle ) {
         
         trackNumber_ = 0;
         acquisitionTitle_ = acquisitionTitle;
@@ -88,23 +94,24 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         try {
             fAreaProcessor_ = CopyUtils.abstractCopy( fAreaProcessor );
         } catch ( Exception ex ) {
-            ReportingUtils.logError(ex, "Failure to Copy Processor in New FiducialLocationModel");
+            IJMMReportingUtils.logError(ex, "Failure to Copy Processor in New FiducialLocationModel");
             throw new RuntimeException( ex );  //Allow Micromanager to respond Appropriately
         }
         
     }
     
-    public FiducialLocationModel( final ImageWindow imgWin, FiducialAreaProcessor fAreaProcessor, String acquisitionTitle ) {
+    public FiducialLocationModel( final ImageWindow imgWin, FiducialAreaProcessor fAreaProcessor,
+                                    String acquisitionTitle ) {
 
         trackNumber_ = 0;
         acquisitionTitle_ = acquisitionTitle;
-
+        
         ip_ = imgWin.getImagePlus();
         
         try {
             fAreaProcessor_ = CopyUtils.abstractCopy( fAreaProcessor );
         } catch ( Exception ex ) {
-            ReportingUtils.logError(ex, "Failure to Copy Processor in New FiducialLocationModel");
+            IJMMReportingUtils.logError(ex, "Failure to Copy Processor in New FiducialLocationModel");
             throw new RuntimeException( ex );  //Allow Micromanager to respond Appropriately
         }
     }
@@ -122,7 +129,7 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
     public FiducialLocationModel( ImagePlus ip, FiducialLocationModel fLocationModel, 
                                         String acquisitionTitle ) throws NoFiducialException {
         
-        acquisitionTitle_ = acquisitionTitle; 
+        acquisitionTitle_ = acquisitionTitle;
         
         ip_ = ip;
         minNumFiducialsForTrack_ = fLocationModel.minNumFiducialsForTrack_;
@@ -130,7 +137,7 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         try {
             fAreaProcessor_ = CopyUtils.abstractCopy( fLocationModel.fAreaProcessor_ );
         } catch ( Exception ex ) {
-            ReportingUtils.logError(ex, "Failure to Copy Processor in New FiducialLocationModel");
+            IJMMReportingUtils.logError(ex, "Failure to Copy Processor in New FiducialLocationModel");
             throw new RuntimeException( ex );  //Allow Micromanager to respond Appropriately
         }
         //Create a Movement Finder Based off of previous FiducialAreaList
@@ -156,6 +163,27 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
     }
     
     /**
+     * Static method for creating a FiducialLocation Model that tracks Fiducials from another Fiducial Location Model.
+     * 
+     * @param ip
+     * @param fLocationModel
+     * @param acquisitionTitle
+     * @return 
+     */
+    public static FiducialLocationModel createTrackedFiducialLocationModel( ImagePlus ip, FiducialLocationModel fLocationModel, 
+                                        String acquisitionTitle ) throws NoFiducialException, NoTrackException {
+        return new FiducialLocationModel( ip, fLocationModel, acquisitionTitle );
+    }
+    
+    public static FiducialLocationModel createTrackedFiducialLocationModel( ImageProcessor iProc, FiducialLocationModel fLocationModel,
+                                            String acquisitionTitle ) throws NoFiducialException, NoTrackException {
+        return new FiducialLocationModel( iProc, fLocationModel, acquisitionTitle );
+        /*if( !fModel.isTracked ) {
+            throw new NoTrackException( "Failed to Track to previous FiducialModel" );
+        }*/
+    }
+    
+    /**
      * Track Copy Constructor 
      *   (Tracks Fiducials From Previous FiducialLocationModel while producing a
      *      new ImagePlus from an ImageProcessor)
@@ -169,10 +197,14 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         this( new ImagePlus("Track Processed Num:" + (fLocationModel.trackNumber_ + 1), iProc), fLocationModel, acquisitionTitle );
     }
     
-    /*
-    *   Apply a Given Match Case (Returned from fMoveFinder_) to FiducialAreaList_
-    *     Adds Listeners and calculates Average Translation of the Match Case.
-    */
+
+    /**
+     * Apply a Given Match Case (Returned from fMoveFinder_) to FiducialAreaList_
+     *     Adds Listeners and calculates Average Translation of the Match Case.
+     * 
+     * @param mCase - The Match case for all Fiducial Areas With Best matches above
+     *                the minimum requirements
+     */
     private void ApplySelectedMatchCase( TravelMatchCase mCase) {
             
         List< FiducialArea > tempList = new ArrayList< FiducialArea >();
@@ -186,7 +218,7 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
             avgXTranslate += diff.xDiffs_;
             avgYTranslate += diff.yDiffs_;
             //Add Change Observer so that the area will register
-            fArea.addObserver( fChangeObserver_ );
+            fArea.RegisterToStateEventBus(fAreaCallBack_);
             try {
                 fArea.setSelectedSpotRaw( diff.spotRef_ );
             }
@@ -199,6 +231,23 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         
         avgRelXPixelTranslate_ = avgXTranslate / (mCase.getFiducialTranslationSpots().size() * fAreaProcessor_.getPixelSize());
         avgRelYPixelTranslate_ = avgYTranslate / (mCase.getFiducialTranslationSpots().size() * fAreaProcessor_.getPixelSize());
+        
+        //Calculate Standard Deviation of those translations (unbiased)
+        double avgRelXPixelTranslateStdDev_ = 0, avgRelYPixelTranslateStdDev_ = 0;
+        int numFiducials = 0;
+        //Apply Selected Spots to the FiducialAreas and Fiducial Areas to the List
+        for( FiducialTravelDiff2D diff : mCase.getFiducialTranslationSpots() ) {
+            fArea = diff.areaOwnerRef_;
+            //We Can Really only Calculate Standard Deviation from the set of real to real reliably
+            if( !diff.toVirtual_ || !diff.fromVirtual_ ) {
+                avgRelXPixelTranslateStdDev_ += Math.pow((diff.xDiffs_ - avgXTranslate), 2);
+                avgRelYPixelTranslateStdDev_ += Math.pow((diff.yDiffs_ - avgYTranslate), 2);
+                //numFiducials
+            }
+            
+            
+        }
+        
         
         //Update the List in case of references
         fiducialAreaList_.clear();
@@ -220,8 +269,13 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         fAreaProcessor_ = fAreaProcessor;
     }
     
-    //Add a FiducialArea to the fiducialList_;
+    /**
+     * Adds a FiducialArea to the List of Fiducial Areas.
+     * 
+     * @param roi 
+     */
     public void addFiducialArea( Roi roi ) {
+        
         fiducialAreaList_.add( createFiducialArea( roi ) );
         dispatch( EVENT_ELEMENT_ADDED );        
     }
@@ -257,7 +311,7 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
     
     private FiducialArea createFiducialArea( Roi roi ) {
         FiducialArea newFArea = new FiducialArea( ip_, roi, fAreaProcessor_ );
-        newFArea.addObserver( fChangeObserver_ );
+        newFArea.RegisterToStateEventBus(fAreaCallBack_);
         return newFArea;
     }
     
@@ -333,7 +387,7 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
     private void storeCurrentFiducialArea() {
         
         //To Make sure there was not an external Plug-in Manipulating ROIS
-        //This is not okay in OO world because The view should not have this burden
+        //This is not okay in MVC world because The view should not have this burden
         dispatch( EVENT_STORE_ROI_REQUEST );
         
         //Areas Should have been set via view/Controllers, null value means delete
@@ -387,34 +441,19 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
     public BoxDisplayTypes getDisplayBoxMode( ) {
         return boxDisplayMode_;
     }
-
-    /**
-     * Local Helper Class to pass along broadcasts if the Fiducial Area Changes
-     * 
-     */
-    public class FiducialChangeObserver implements Observer {
-
-        @Override
-        public void update(Observable o, Object arg) {
-            //Try Cast to FiducialArea in case of other objects
-            if (o instanceof FiducialArea) {
-                //Should be used for redraws or other UI updates on data
-                dispatch(EVENT_FIDUCIAL_AREA_DATA_CHANGED);
-            }
-        }
-        
-    }
     
     /**
      * Updates the ImagePlus and all Fiducial Areas in the case of a live imaging sequence.
      * This resets and rescans all Fiducial Areas.
+     * <p>
+     * TODO: Make thread Safe
      * 
      * @param ip - the new imagePlus
      * @return - <code>true</code> if the ImagePlus was different or not null <code>false</code>
      *            if the ImagePlus was null or has not changed.
      */
     public boolean updateImagePlus( ImagePlus ip ) {
-        if( ip == null && ip == ip_ ) {
+        if( ip == null ) {
             return false;
         }
         
@@ -424,6 +463,39 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         }
         
         return true;
+    }
+   
+     /**
+     * Updates the ImagePlus with a current ImageProcessor and reevaluates all Fiducial Areas.
+     * This resets and rescans all Fiducial Areas.
+     * <p>
+     * TODO: Ensure thread Safety
+     * 
+     * @param ip - the new imagePlus
+     * @return - <code>true</code> if the ImagePlus was different or not null <code>false</code>
+     *            if the ImagePlus was null or has not changed.
+     */
+    public boolean updateImageProcessor( ImageProcessor iproc ) {
+        if( iproc == null) return false;
+        
+        ip_.setProcessor(iproc);
+        for( FiducialArea fArea : fiducialAreaList_ ) {
+            fArea.updateImagePlus( ip_ );
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Returns the ImageProcessor on which all find operations are performed.
+     * 
+     * This May or may not be a reference to the internal processor given the nature of ImagePlus.
+     * <p>
+     * TODO: Make thread Safe
+     * @return 
+     */
+    public ImageProcessor getImageProcessor() {
+        return ip_.getProcessor();
     }
     
     /**
@@ -528,5 +600,60 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
      */
     public double getAvgAbsoluteYPixelTranslation() {
         return avgAbsoluteYPixelTranslation_;
+    }
+    
+    /**
+     * FiducialArea State Listener Callback Class
+     * <p>
+     * Implemented as inner class to avoid constructor initialization issues that may arise with registration
+     */
+    private class FiducialAreaCallback {
+
+        /**
+         * Callback for handling when a selectedFiducialArea Has Changed
+         * <p>
+         * TODO: Change internals to dispatch StateBroadcaster instead of
+         * current Observer Paradigm TODO: See if Async Callback is more
+         * appropriate
+         *
+         * @param evt
+         */
+        @Subscribe
+        public void onSelectedFiducialChanged(FiducialArea.SelectedFiducialChangeEvent evt) {
+            //Should be reworked, but currently just call update for listeners
+            dispatch(EVENT_FIDUCIAL_AREA_DATA_CHANGED);
+        }
+
+        /**
+         * Callback for handling when a FiducialArea's Search Reagion Has
+         * Changed
+         * <p>
+         * TODO: Change internals to dispatch StateBroadcaster instead of
+         * current Observer Paradigm TODO: See if Async Callback is more
+         * appropriate
+         *
+         * @param evt
+         */
+        @Subscribe
+        public void onFAreaSearchRegionChanged(FiducialArea.RoiChangeEvent evt) {
+            //Should be reworked, but currently just call update for listeners
+            dispatch(EVENT_FIDCUIAL_REGION_CHANGED);
+        }
+
+        /**
+         * Callback for handling when a FiducialArea's Possible Fiducials List
+         * Has Changed
+         * <p>
+         * TODO: Change internals to dispatch StateBroadcaster instead of
+         * current Observer Paradigm TODO: See if Async Callback is more
+         * appropriate
+         *
+         * @param evt
+         */
+        @Subscribe
+        public void onSelectedFiducialChanged(FiducialArea.SpotSearchRepopulatedEvent evt) {
+            //Should be reworked, but currently just call update for listeners
+            dispatch(EVENT_FIDUCIAL_SELECTION_CHANGED);
+        }
     }
 }

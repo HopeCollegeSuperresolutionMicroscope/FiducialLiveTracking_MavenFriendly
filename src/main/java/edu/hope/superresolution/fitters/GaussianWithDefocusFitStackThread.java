@@ -5,6 +5,7 @@
  */
 package edu.hope.superresolution.fitters;
 
+import edu.hope.superresolution.Utils.IJMMReportingUtils;
 import edu.hope.superresolution.fitprocesses.FitProcessContainer;
 import edu.hope.superresolution.genericstructures.BlockingQueueEndConditionTest;
 import edu.valelab.gaussianfit.data.SpotData;
@@ -16,7 +17,7 @@ import org.micromanager.utils.ReportingUtils;
 
 /**
  *
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class GaussianWithDefocusFitStackThread extends FitStackThread {
 
@@ -97,10 +98,10 @@ public class GaussianWithDefocusFitStackThread extends FitStackThread {
 
             }
         } catch (Exception ex) {
-            ReportingUtils.logError(ex);
-            ReportingUtils.logError("Thread run out of memory  "
+            IJMMReportingUtils.logError(ex);
+            IJMMReportingUtils.logError("Thread run out of memory  "
                     + Thread.currentThread().getName());
-            ReportingUtils.showError("Fitter out of memory.\n"
+            IJMMReportingUtils.showError("Fitter out of memory.\n"
                     + "Out of memory error");
             //Immediate Exit
             throw new IllegalThreadStateException(ex.getMessage());

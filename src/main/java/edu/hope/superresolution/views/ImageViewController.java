@@ -25,7 +25,7 @@ import java.util.logging.Logger;
 
 /**
  *
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class ImageViewController implements ModelUpdateListener {
     
@@ -86,7 +86,11 @@ public class ImageViewController implements ModelUpdateListener {
         }
         
         //add the ROI For the Current Selectable One
-        imgWin_.getImagePlus().setRoi( fLocationModel_.getSelectedFiducialArea().getSelectionArea() );
+        FiducialArea selected = fLocationModel_.getSelectedFiducialArea();
+        //Necessary filtering for the sake of an overzelous deletion operation or lazy initialization
+        if( selected != null ){
+            imgWin_.getImagePlus().setRoi( selected.getSelectionArea() );
+        }
     }
     
     void updateOverlayForFiducialArea( FiducialArea fArea ) {
@@ -163,9 +167,15 @@ public class ImageViewController implements ModelUpdateListener {
 
         private int pressCoordsX_;
         private int pressCoordsY_;
+
+        /**
+         * Callback Event For Handling mouseClick Releases
+         * Currently Handles logging of initial click location
+         * Also Checks to see if an Roi was changed and acts on any changes 
+         */
         @Override
-        //Use of Pressed first
         public void mousePressed(MouseEvent e) {
+            //Store Coordinates for initial click (used to see if a movement/occured or is just a click)
             pressCoordsX_ = e.getX();
             pressCoordsY_ = e.getY();
             if( showFiducials_ )
@@ -175,19 +185,27 @@ public class ImageViewController implements ModelUpdateListener {
                     //fLocationModel_.getSelectedFiducialArea()
                 }
             }
-            //Also check for any changes in the Roi that would have happened
+            
+            //Check for any changes in the Roi that would have happened
             actOnRoiChanges( );
         }
 
+        /**
+         * Callback Event For Handling mouseClick Releases
+         * Currently Evaluates if the release moved to determine if a selection click occurred
+         * Also Checks to see if an Roi was changed and acts on any changes 
+         * 
+         * @param e 
+         */
         @Override
         public void mouseReleased(MouseEvent e) {
+            
             
             //To Avoid Selecting in Overlapping Areas, Only Allow when not showing all
             if( showFiducials_ && !showAll_ )
             {
               if( e.getButton() == MouseEvent.BUTTON1 ) {
-                 //Check to make sure Both Events are Within the Window
-                 //If the coordinates are the same then count it as a select
+                 //Check to make sure the mouse didn't move so it's a selection click
                  if (e.getX() == pressCoordsX_ && e.getY() == pressCoordsY_) {
                         int xScreen = imgWin_.getCanvas().offScreenX(pressCoordsX_);
                         int yScreen = imgWin_.getCanvas().offScreenY(pressCoordsY_);
@@ -201,7 +219,8 @@ public class ImageViewController implements ModelUpdateListener {
                     }
                 }
             }
-            //Also check for any changes in the Roi that would have happened
+            
+            //Check for any changes in the Roi that would have happened
             actOnRoiChanges();
         }
       
@@ -252,7 +271,12 @@ public class ImageViewController implements ModelUpdateListener {
         
         if( !roiIsSameAsRecent( roi ) ) {
             fLocationModel_.setCurrentFiducialAreaRegion( roi );
-            recentRoi_ = (Roi) roi.clone();
+            if( roi != null ) {
+                //Decouple roi from other imagePluses
+                recentRoi_ = (Roi) roi.clone();
+            } else {
+                recentRoi_ = roi;
+            }
         }
         
     }

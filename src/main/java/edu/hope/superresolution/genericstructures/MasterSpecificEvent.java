@@ -10,7 +10,7 @@ package edu.hope.superresolution.genericstructures;
  *  and is not recommended to be the only type in a subscriber method.  
  *  This super class expects the specific creating instance in its constructor
  *  and provides the sameOriginator() method for subscribers to verify if the originator 
- *  of this Event is one that they have a reference too.
+ *  of this Event is one that they have a reference to.
  *  <p>
  *  In hardware terms, this is analogous to having multiple slaves on a single bus.
  *  If a single EventBus is going to manage many instances calling the same events,
@@ -18,10 +18,10 @@ package edu.hope.superresolution.genericstructures;
  *  to more than one EventBuses that can call the same Event (e.g. multiple instances of 
  *  a single class with seperate EventBuses) then this should be used to determine the calling object.
  *  <p>
- *  Note:  This class does not expose the reference to the instance to prevent intermediate alteration
+ *  Note:  This class does not expose the reference to the instance originating the event to prevent intermediate alteration
  *  of the object posting Events.
  *
- * @author Desig
+ * @author Justin Hanselman
  */
 public abstract class MasterSpecificEvent {
     

@@ -28,7 +28,7 @@ import java.util.concurrent.BlockingQueue;
  *  being initiated through init().  New Rois, even on the same image, would be better served with 
  *  a new instance of this thread with the Roi added.
  * 
- * @author Microscope
+ * @author Justin Hanselman
  * 
  * @see edu.hope.superresolution.fitters.GaussianFitStackThreadTest
  * @see edu.hope.superresolution.fitters.GaussianFit
@@ -188,7 +188,7 @@ public class GaussianFitThread extends GenericBaseGaussianFitThread {
     }
     
     /**
-     * One Solution to Scaling the Data Set to ensure it includes the correct values.
+     * One Solution to Scaling the Data Set is to ensure it includes the correct values.
      * This solution individually moves the x and y values away from each pixel at 
      * the maxValue until they are below the thresholdVal to produce a data set of certain
      * pixels or until there is an obvious shift in the x and y only (shared edge)

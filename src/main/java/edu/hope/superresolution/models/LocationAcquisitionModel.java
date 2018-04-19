@@ -5,19 +5,28 @@
  */
 package edu.hope.superresolution.models;
 
+import edu.hope.superresolution.ImageJmodifieds.TwoSliceSelector;
 import edu.hope.superresolution.MMgaussianfitmods.datasubs.ExtendedGaussianInfo;
+import edu.hope.superresolution.Utils.IJMMReportingUtils;
 import edu.hope.superresolution.autofocus.FiducialAutoFocus;
 import edu.hope.superresolution.exceptions.NoFiducialException;
+import edu.hope.superresolution.genericstructures.VirtualDirectoryManager;
 import edu.hope.superresolution.livetrack.LiveTracking;
 import edu.hope.superresolution.views.FiducialSelectForm;
 import edu.hope.superresolution.views.ImageViewController;
 import edu.hope.superresolution.views.MicroscopeModelForm;
 import edu.hope.superresolution.views.ModifiedLocalizationParamForm;
 import edu.valelab.gaussianfit.utils.ReportingUtils;
+import ij.IJ;
 import ij.ImagePlus;
 import ij.gui.ImageWindow;
 import ij.process.ImageProcessor;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.micromanager.api.ScriptInterface;
 import org.micromanager.utils.AutofocusManager;
 import org.micromanager.utils.MMException;
@@ -34,7 +43,7 @@ import org.micromanager.utils.MMException;
  * As the Top level Model, this creates and links views to selectedAcquisitionLocations_
  *   Additionally, this model itself may be linked to view that are created in the calling context (plugin)
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class LocationAcquisitionModel {
     
@@ -77,6 +86,7 @@ public class LocationAcquisitionModel {
         }
         
     }
+  
     
     /**
      * Enumerated Class for Fit Settings Modes (to be expanded later possibly)
@@ -98,6 +108,7 @@ public class LocationAcquisitionModel {
                                                 new ArrayList< FiducialLocationModel >();  //FiductionLocationModels as set 1 per imagePlus
     private FiducialLocationModel selectedLocationsAcquisition_ = null;
     private final ImageWindow imgWin_;
+    private AcquisitionSubmitAction submitAction_;
     private ScriptInterface app_;
     private final LiveTracking pluginInstance_;  //Used For Calling in GUIs
     
@@ -112,10 +123,12 @@ public class LocationAcquisitionModel {
     //Single Reference to be passed to all FiducialLocationModel
     private final GaussianFitParamModel gaussParamModel_;  //Parameters are not expected to change references across Acquisition Models
     private final GaussianFitParameterListener gaussianParameterListener_ = new GaussianFitParameterListener();
-    //Unique Identifier Used for ImageWindows, etc, pertaining to this Acquisition
+    //Unique Identifiers Used for ImageWindows, etc, pertaining to this Acquisition and any saving operations
+    private static VirtualDirectoryManager acqSaveDirectory_ = new VirtualDirectoryManager();  //TempSave Directory for any VirtualStacks to Be Created
     public static final String ACQUISITIONTITLEBASE = "FiducialLocationAcquisition";
-    private final String uniqueAcquisitionTitle_; //Used for uniqueAcquisitionTitle
     private static int acquisitionTitleIdx_ = 0; //Used for cataloging of indices
+    private final String uniqueAcquisitionTitle_; //Used for uniqueAcquisitionTitle
+
     
     /**
      * Inner Helper Class for Producing Smaller Events when a Window Submit (i.e. Fiducial Form Track Button) is clicked
@@ -139,15 +152,16 @@ public class LocationAcquisitionModel {
      *  Use of the pluginInstance should not be made in the constructor as its calling context is malformed.
      * 
      * @param imgWin - The image Window in which selection should occur
-     * @param app - The MMStudio ScriptInterface
+     * @param submitAction - The action for when Fiducial Tracking View Clicked
      * @param pluginInstance - The instance of the plugin that created this Acquisition
      */
-    public LocationAcquisitionModel( ImageWindow imgWin, ScriptInterface app, LiveTracking pluginInstance ) {
+    public LocationAcquisitionModel( ImageWindow imgWin, /*ScriptInterface app,*/AcquisitionSubmitAction submitAction, LiveTracking pluginInstance ) {
         
         pluginInstance_ = pluginInstance;
         imgWin_ = imgWin;
 
-        app_ = app;
+        //app_ = app;
+        submitAction_ = submitAction;
         //Set Gaussian Parameters graphical Components
         //This is a constrained structure currently given constructor updates
         gaussParamModel_ = new GaussianFitParamModel();
@@ -158,7 +172,7 @@ public class LocationAcquisitionModel {
         
         //Create An Action Listener for Clicking on the track Button
         //Should be variable based on a new parameter for the sake of other acquisition types
-        AcquisitionSubmitAction trackAction = new AcquisitionSubmitAction() {
+        /*AcquisitionSubmitAction trackAction = new AcquisitionSubmitAction() {
             
             @Override
             public void submitResponse( ) {
@@ -182,20 +196,93 @@ public class LocationAcquisitionModel {
                 //Show Acquisition
                 app_.getAcqDlg().setVisible(true);
             } 
-        };
+        };*/
         
         //Set Location Model graphical components
-        fidSelectForm_ = new FiducialSelectForm( /*selectedLocationsAcquisition_,*/ paramForm_, trackAction, imgWin_, pluginInstance_ );
+        fidSelectForm_ = new FiducialSelectForm( /*selectedLocationsAcquisition_,*/ paramForm_, submitAction_, imgWin_, pluginInstance_ );
         
         imgView_ = new ImageViewController( imgWin_/*, selectedLocationsAcquisition_*/ );
         //gaussParamModel_.updateProcessorMicroscopeModel( microModelForm_.getMicroscopeModel() );
         
         try {
             //Create current Location Model and set to selectedLocationAcquisition
-            pushNextFiducialLocationModel( imgWin_.getImagePlus(), true );
+            pushNextFiducialLocationModel( imgWin_.getImagePlus().getProcessor(), true );
         } catch (NoFiducialException ex) {
             //Currently there should be no throw when creating the first FiducialLocatinModel
         }
+ 
+        //turn on all GUIs for the model
+        selectedLocationsAcquisition_.enableAllListenerGUIs(true);
+
+        //Create A Unique AcquisitionTitle and Increment the acquisitionTitleIdx for uniqueness
+        String temp = ACQUISITIONTITLEBASE + "_" + acquisitionTitleIdx_ + "_";
+        uniqueAcquisitionTitle_ = temp;
+        acquisitionTitleIdx_++;
+        
+    }
+
+    
+    /**
+     * Copy Constructor - Shallow Copy of The Acquisition List and the final 
+     * selectedLocationAcquisition.  Location Models are linked, but new models won't be registered.
+     * @param source 
+     */
+    public LocationAcquisitionModel( LocationAcquisitionModel source ) {
+        
+        pluginInstance_ = source.pluginInstance_;
+        //Should we keep this?
+        imgWin_ = source.imgWin_;
+
+        //app_ = source.app_;
+        submitAction_ = source.submitAction_;
+        //Set Gaussian Parameters graphical Components
+        //This is a constrained structure currently given constructor updates
+        gaussParamModel_ = source.gaussParamModel_;
+        //microModelForm_ = new MicroscopeModelForm();
+        paramForm_ = source.paramForm_;
+        //This might need to be separate
+        //gaussParamModel_.registerModelListener( paramForm_ );
+        //gaussParamModel_.registerModelListener(  gaussianParameterListener_ );
+        
+        //Create An Action Listener for Clicking on the track Button
+        //Should be variable based on a new parameter for the sake of other acquisition types
+        AcquisitionSubmitAction trackAction = new AcquisitionSubmitAction() {
+            
+            @Override
+            public void submitResponse( ) {
+                //Sets the autofocus to FiducialAutofocus
+                AutofocusManager afMgr = app_.getAutofocusManager();
+                afMgr.setAFPluginClassName(FiducialAutoFocus.class.getName());
+                try {
+                    afMgr.refresh();
+                } catch (MMException ex) {
+                    org.micromanager.utils.ReportingUtils.showError(ex);
+                }
+                //Notify User Of New Autofocus Options
+                IJMMReportingUtils.showMessage("New Autfocus Added: " + FiducialAutoFocus.DEVICE_NAME);
+                try {
+                    afMgr.selectDevice(FiducialAutoFocus.DEVICE_NAME);
+                    //This is Stupidly Deprecated without a replacement for opening the Dialog
+                    // runAcquisition does not work well
+                } catch (MMException ex) {
+                    org.micromanager.utils.ReportingUtils.showError(ex);
+                }
+                //Show Acquisition
+                app_.getAcqDlg().setVisible(true);
+            } 
+        };
+        
+        //Set Location Model graphical components
+        fidSelectForm_ = new FiducialSelectForm( /*selectedLocationsAcquisition_,*/ paramForm_, trackAction, imgWin_, pluginInstance_ );
+        
+        imgView_ = new ImageViewController( imgWin_/*, selectedLocationsAcquisition_*/ );
+        
+        //Copy the Current fLocationAcquisition
+        Iterator< FiducialLocationModel > it = source.fLocationAcquisitions_.iterator();
+        while( it.hasNext() ) {
+            fLocationAcquisitions_.add(it.next());
+        }
+        selectedLocationsAcquisition_ = source.selectedLocationsAcquisition_;
  
         //turn on all GUIs for the model
         selectedLocationsAcquisition_.enableAllListenerGUIs(true);
@@ -204,33 +291,12 @@ public class LocationAcquisitionModel {
         String temp = ACQUISITIONTITLEBASE + "_" +acquisitionTitleIdx_ + "_";
         uniqueAcquisitionTitle_ = temp;
         acquisitionTitleIdx_++;
-        //Attach A listener to any Windows
-        //This needs some sort of frame skipping mechanism for processing
-        /*ImageListener iListener = new ImageListener() {
-            @Override
-            public void imageOpened(ImagePlus ip) {
-                imageUpdated(ip);
-            }
-
-            @Override
-            public void imageClosed(ImagePlus ip) {
-                //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-            }
-
-            @Override
-            public void imageUpdated(ImagePlus ip) {
-                if( ip.getWindow() == imgWin_ ) {
-                    ij.IJ.log( " Calling Update ");
-                    selectedLocationsAcquisition_.updateImagePlus(ip);
-                }
-            }
-            
-        };
-        ImagePlus.addImageListener( iListener );*/
         
-        }
+
+    }
     
-    
+    //Deprecated: Was Developed Under Assumption that ImagePlus would be 1 slice processors.
+    //To Be Deleted Once Usage is proven unnecessary.
     /**
     *  Pushes a new Fiducial Location Model Onto fLocationAcquistions_ (internal stack)
     * <p>
@@ -251,19 +317,19 @@ public class LocationAcquisitionModel {
     *                               if aborted and not added but throws this Exception
     *   @see FiducialLocationModel
     */
-    public FiducialLocationModel pushNextFiducialLocationModel( ImagePlus ip, boolean setSelected ) throws NoFiducialException {
+    /*public FiducialLocationModel pushNextFiducialLocationModel( ImagePlus ip, boolean setSelected ) throws NoFiducialException {
         
         FiducialLocationModel locModel = null;
-        if( /*areaUISelection_ ||*/ fLocationAcquisitions_.size() <= 0 ) {
+        if( /*areaUISelection_ ||*/ /*fLocationAcquisitions_.size() <= 0 ) {
             //Produce the GUIs and wait...
             //Currently No GUIS or Blocking
-            locModel = new FiducialLocationModel( ip, gaussParamModel_.getCurrentProcessor(),
+            locModel = new FiducialLocationModel( dummyPlus, gaussParamModel_.getCurrentProcessor(),
                                                         uniqueAcquisitionTitle_ );
         }       
         else {
             //Copy From Last FiducialLocationModel
             try {
-                locModel = new FiducialLocationModel( ip, 
+                locModel = new FiducialLocationModel( dummyPlus, 
                     fLocationAcquisitions_.get( fLocationAcquisitions_.size() - 1 ),
                                                         uniqueAcquisitionTitle_ );
             } catch (NoFiducialException ex) {
@@ -282,7 +348,7 @@ public class LocationAcquisitionModel {
         }
         
         return locModel;
-    }
+    }*/
     
     /**
      *  Overloaded Version of pushNextFiducialLocationModel, only requiring an ImageProcessor
@@ -305,9 +371,11 @@ public class LocationAcquisitionModel {
         else {
             //Copy From Last FiducialLocationModel
             try {
-                locModel = new FiducialLocationModel( iProc, 
+                locModel = FiducialLocationModel.createTrackedFiducialLocationModel(iProc, 
+                        fLocationAcquisitions_.get( fLocationAcquisitions_.size() - 1 ), uniqueAcquisitionTitle_);
+                        /*new FiducialLocationModel( iProc, 
                     fLocationAcquisitions_.get( fLocationAcquisitions_.size() - 1 ),
-                                                        uniqueAcquisitionTitle_ );
+                                                        uniqueAcquisitionTitle_ );*/
             } catch (NoFiducialException ex) {
                 throw ex;
             } 
@@ -319,7 +387,7 @@ public class LocationAcquisitionModel {
                 setSelectedLocationAcquistion( fLocationAcquisitions_.size() - 1 );
             } catch ( Exception ex ) {
                 ex.printStackTrace();
-                ReportingUtils.logError( ex, ex.getMessage() );
+                IJMMReportingUtils.logError( ex, ex.getMessage() );
             }
         }
         
@@ -332,12 +400,8 @@ public class LocationAcquisitionModel {
      * 
      * @param idx The index to get from in fLocationAcquisitions_ (inner Acquisition stack) 
      * @return    The FiducialLocationModel at the given (zero-based) idx
-     * @throws Exception Thrown if idx exceeds the size of the given stack
      */
-    public FiducialLocationModel getFiducialLocationModel( int idx ) throws Exception {
-        if( idx >= fLocationAcquisitions_.size() ) {
-            throw new Exception( "Fiducial Location Model index out of Bounds");
-        }
+    public FiducialLocationModel getFiducialLocationModel( int idx ) {
         return fLocationAcquisitions_.get( idx );
     }
     
@@ -489,6 +553,56 @@ public class LocationAcquisitionModel {
                         fLocationAcquisitions_.get( fLocationAcquisitions_.size() - 1 );
             }
         }
+    }
+    
+    /**
+     * Returns the number of FiducialLocationModels that have been taken in this moment
+     * 
+     * @return 
+     */
+    public int getNumFiducialLocationModels( ) {
+        return fLocationAcquisitions_.size();
+    }
+    
+    /**
+     * Returns A LocationAcquisitionModel encompassing the indices from start to end.
+     * <p>
+     * Note: If startIdx or endIdx is out of order, the minimum index will be chosen.
+     * 
+     * @return 
+     */
+    public LocationAcquisitionModel getCurrentLocationAcquisitionCopy( ) {
+        return new LocationAcquisitionModel(this);
+    }    
+    
+    /**
+     * Returns a Representative ImageProcessor of the Acquisitions being polled.  For Live Windows, this will return
+     * the most recent ImagePlus while for static contexts it will return the current ImagePlus.
+     * <p>
+     * Returned objects are references to copies potentially so only use for referencing attributes.
+     * 
+     * @return - An ImagePlus instance with the same general properties of the last ImageWindow Instance.
+     */
+    public ImageProcessor getRepresentativeImageProc() {
+        return imgWin_.getImagePlus().getProcessor();
+    }
+    
+    /**
+     * Gets the name of this Acquisition (unique Among These Models)
+     * @return 
+     */
+    public String getAcquisitionTitle() {
+        return uniqueAcquisitionTitle_;
+    }
+    
+    /**
+     * Returns the Instance of VirtualDirectory Management that pertains to LocationAcquisition Models
+     * And their actions.  This was made so that Virtual Stack Windows might be created to show
+     * Operations in real time.
+     *    
+     */
+    public static VirtualDirectoryManager getAcquisitionSaveDirectory() {
+        return acqSaveDirectory_;
     }
     
 }

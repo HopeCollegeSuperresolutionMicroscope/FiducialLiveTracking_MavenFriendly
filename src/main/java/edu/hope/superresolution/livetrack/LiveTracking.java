@@ -6,17 +6,27 @@ package edu.hope.superresolution.livetrack;
  * and open the template in the editor.
  */
 
+import edu.hope.superresolution.autofocus.FiducialAutoFocus;
 import edu.hope.superresolution.models.LocationAcquisitionModel;
 import edu.hope.superresolution.views.TestImageWindowCombinations;
 import ij.ImagePlus;
+import ij.VirtualStack;
 import ij.process.ShortProcessor;
+import java.awt.image.ColorModel;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.micromanager.MMStudio;
 import org.micromanager.api.MMPlugin;
 import org.micromanager.api.ScriptInterface;
+import org.micromanager.utils.AutofocusManager;
+import org.micromanager.utils.MMException;
+import org.micromanager.utils.ReportingUtils;
 
 /**
  *
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class LiveTracking implements org.micromanager.api.MMPlugin {
 
@@ -60,10 +70,8 @@ public class LiveTracking implements org.micromanager.api.MMPlugin {
     }
 
     @Override
-    public void setApp(ScriptInterface si) {
-        //In the event that this autofocus is not installed via its own .jar, 
-        // set the fiducialAutoFocus as available to the plugin
-       /* FiducialAutoFocus fAutoFocus_ = null;
+    public void setApp(final ScriptInterface si) {        
+        /*FiducialAutoFocus fAutoFocus_ = null;
         //ReportingUtils.showMessage(si.installAutofocusPlugin( FiducialAutoFocus.class.getName() ) );
         //Temporary AutoFocus Instance For Testing
         AutofocusManager afMgr = si.getAutofocusManager();
@@ -85,16 +93,43 @@ public class LiveTracking implements org.micromanager.api.MMPlugin {
         } catch (MMException ex) { 
            ReportingUtils.showError(ex);
            return;
-        } */
-        //fAutoFocus_ = (FiducialAutoFocus) afMgr.getDevice();
-        TestImageWindowCombinations tester = new TestImageWindowCombinations(new ImagePlus( "testcase", new ShortProcessor(400, 400) ));
+        } 
+        fAutoFocus_ = (FiducialAutoFocus) afMgr.getDevice();*/
         
         //Cue Up the LiveWindow For Selection of Fiducials and Focus Plane
         si.enableLiveMode(true);
         
         //Should make this a Factory for other Image Processors
         
-        locAcqModel_ = new LocationAcquisitionModel( si.getSnapLiveWin(), si, this );
+        //Create An Action Listener for Clicking on the track Button
+        //Should be variable based on a new parameter for the sake of other acquisition types
+        LocationAcquisitionModel.AcquisitionSubmitAction trackAction = new LocationAcquisitionModel.AcquisitionSubmitAction() {
+            
+            @Override
+            public void submitResponse( ) {
+                //Sets the autofocus to FiducialAutofocus
+                AutofocusManager afMgr = si.getAutofocusManager();
+                afMgr.setAFPluginClassName(FiducialAutoFocus.class.getName());
+                try {
+                    afMgr.refresh();
+                } catch (MMException ex) {
+                    org.micromanager.utils.ReportingUtils.showError(ex);
+                }
+                //Notify User Of New Autofocus Options
+                org.micromanager.utils.ReportingUtils.showMessage("New Autfocus Added: " + FiducialAutoFocus.DEVICE_NAME);
+                try {
+                    afMgr.selectDevice(FiducialAutoFocus.DEVICE_NAME);
+                    //This is Stupidly Deprecated without a replacement for opening the Dialog
+                    // runAcquisition does not work well
+                } catch (MMException ex) {
+                    org.micromanager.utils.ReportingUtils.showError(ex);
+                }
+                //Show Acquisition
+                si.getAcqDlg().setVisible(true);
+            } 
+        };
+        
+        locAcqModel_ = new LocationAcquisitionModel( si.getSnapLiveWin(), trackAction, this );
         locAcqModel_.enableSelectedLocationModelGUIs( true );
         
         //Log That this has Been started Successfully

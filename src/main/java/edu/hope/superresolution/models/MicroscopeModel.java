@@ -11,7 +11,7 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  *  Used to Store Various Attributes of a Microscope Physical System 
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class MicroscopeModel extends ModelUpdateDispatcher {
     

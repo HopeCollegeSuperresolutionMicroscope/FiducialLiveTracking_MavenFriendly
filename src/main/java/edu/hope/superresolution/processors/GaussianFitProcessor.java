@@ -26,7 +26,7 @@ import javax.swing.JOptionPane;
 /**
  *
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class GaussianFitProcessor extends FiducialAreaProcessor {
     
@@ -48,9 +48,14 @@ public class GaussianFitProcessor extends FiducialAreaProcessor {
         super( sourceProcessor.getCurrentSettings(), sourceProcessor.getMicroscopeModel() );
     }
 
-    //fitAllPossibleFiducials to the Roi
-    //returns true if a new fit is in process
-    //   Note:  This will return true if a change occurs or is slated to occur
+    /**
+     * Fits all possible Fiducials to the Roi, and returns the results through a callback
+     * 
+     * @param ip The ImagePlut in which the fitting should occur
+     * @param roi The Roi in which to apply fitting
+     * @param callerCallback The callback to return the fitted fiducials after processing
+     * @return true if a new fit is in process or a change occurs or is slated to occur
+     */
     @Override
     public boolean fitRoiForImagePlus( ImagePlus ip, Roi roi, ListCallback callerCallback ) {
         

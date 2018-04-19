@@ -43,7 +43,7 @@ import org.apache.commons.math3.optim.PointVectorValuePair;
  * @see edu.valelab.gaussianfit.algorithm.GaussianFit.java
  * 
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class GaussianWithDefocusFit implements FitProcessContainer {
     

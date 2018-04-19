@@ -23,7 +23,7 @@ import java.util.concurrent.BlockingQueue;
  *        a result of trying to cannibalize Localization Microscopy Code, but it is 
  *        non-expandable.
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class ExtendedGaussianInfo {
 

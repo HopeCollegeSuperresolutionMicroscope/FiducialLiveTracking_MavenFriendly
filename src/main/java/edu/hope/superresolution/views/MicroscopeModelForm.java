@@ -8,14 +8,12 @@ package edu.hope.superresolution.views;
 import edu.hope.superresolution.models.MicroscopeModel;
 import edu.hope.superresolution.models.ModelUpdateDispatcher;
 import edu.hope.superresolution.models.ModelUpdateListener;
-import edu.valelab.gaussianfit.utils.NumberUtils;
-import edu.valelab.gaussianfit.utils.ReportingUtils;
 import java.text.ParseException;
 import java.util.prefs.Preferences;
 
 /**
  *
- * @author Desig
+ * @author Justin Hanselman
  */
 public class MicroscopeModelForm extends javax.swing.JFrame implements ModelUpdateListener {
 
@@ -57,18 +55,18 @@ public class MicroscopeModelForm extends javax.swing.JFrame implements ModelUpda
         
         prefs_ = Preferences.userNodeForPackage(this.getClass());
 
-        curNumAperture_ = prefs_.getDouble( NUM_APERTURE_KEY, 1 );
-        curIndexRefraction_ = prefs_.getDouble( REFRACTIVE_IDX_KEY, 1 );
+        curNumAperture_ = prefs_.getDouble( NUM_APERTURE_KEY, 1.3 );
+        curIndexRefraction_ = prefs_.getDouble( REFRACTIVE_IDX_KEY, 1.518 );
         isInfinityCorrected_ = prefs_.getBoolean( INFINITY_CORRECTION_KEY, true);
         manufacturerMagnification_ = prefs_.getDouble( MANUFACTURER_MAGNIFICATION_KEY, 100 );
         referenceTubeLength_ = prefs_.getDouble( REFERENCE_TUBE_LENGTH_KEY, 180 );
-        actualTubeLength_ = prefs_.getDouble( ACTUAL_TUBE_LENGTH_KEY, 180 );
+        actualTubeLength_ = prefs_.getDouble( ACTUAL_TUBE_LENGTH_KEY, 200 );
         eyePieceMagnification_ = prefs_.getDouble( EYEPIECE_MAGNIFICATION_KEY, 1 );
         
         numericalApertureTextField_.setText( Double.toString( curNumAperture_ ));
-        opticalTubeLengthTextField_.setText( Double.toString( referenceTubeLength_ ));
+        opticalTubeLengthTextField_.setText( Double.toString( actualTubeLength_ ));
         refMagnificationTextField_.setText( Double.toString( manufacturerMagnification_ ));
-        refTubeLengthTextField_.setText( Double.toString( actualTubeLength_ ));
+        refTubeLengthTextField_.setText( Double.toString( referenceTubeLength_ ));
         refractiveIdxTextField_.setText( Double.toString( curIndexRefraction_ ));
         eyePieceMagnificationTextField_.setText( Double.toString( eyePieceMagnification_ ));
         //isInfCorrectedComboBox_.setSelectedItem( ( isInfinityCorrected_ ? isInfCorrectedOptions_[0] : isInfCorrectedOptions_[1] ));
@@ -77,14 +75,6 @@ public class MicroscopeModelForm extends javax.swing.JFrame implements ModelUpda
         //See if the settings are at all unexpected and warn the user
         tubeLengthValidatePrompt();
         
-        /*//Update the MicroscopeModel
-        model_ = new MicroscopeModel(curNumAperture_, curIndexRefraction_, 
-                            manufacturerMagnification_, referenceTubeLength_, isInfinityCorrected_,
-                            actualTubeLength_, eyePieceMagnification_);
-        
-        //This must be at the end of the constructor to avoid poor initialization
-        model_.registerModelListener( this );
-        */
     }
 
     /**
@@ -273,6 +263,11 @@ public class MicroscopeModelForm extends javax.swing.JFrame implements ModelUpda
 
         eyePieceMagnificationTextField_.setHorizontalAlignment(javax.swing.JTextField.TRAILING);
         eyePieceMagnificationTextField_.setText("1");
+        eyePieceMagnificationTextField_.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                eyePieceMagnificationTextField_ActionPerformed(evt);
+            }
+        });
 
         jLabel10.setText("EyePiece Magnification");
 
@@ -355,16 +350,44 @@ public class MicroscopeModelForm extends javax.swing.JFrame implements ModelUpda
 
     }//GEN-LAST:event_numericalApertureTextField_ActionPerformed
 
+    /**
+     * Sets the Numerical Aperture if it is non-negative, otherwise maintains the same index
+     * and resets any fields with the update
+     * @param numAp
+     * @return <code>true</code> if set
+     */
+    private boolean verifyAndSetNumericalAperture( double numAp ) {
+        if( numAp <= 0 ) { 
+            numericalApertureTextField_.setText( Double.toString( curNumAperture_ ) );
+            return false;
+        } else {
+            curNumAperture_ = numAp;
+            return true;
+        }
+    }
+    
     private void opticalTubeLengthTextField_ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_opticalTubeLengthTextField_ActionPerformed
         double temp = Double.parseDouble( opticalTubeLengthTextField_.getText() );
-        if( temp <= 0 ) {
-            opticalTubeLengthTextField_.setText( Double.toString( actualTubeLength_ ));
-        } else {
-            actualTubeLength_ = temp;
-        }
+        verifyAndSetOpticalTubeLength( temp );
         tubeLengthValidatePrompt();
     }//GEN-LAST:event_opticalTubeLengthTextField_ActionPerformed
 
+    /**
+     * Sets the Actual Optical tube Length if it is non-negative, otherwise maintains the same index
+     * and resets any fields with the update
+     * @param optTubeLength
+     * @return <code>true</code> if set
+     */
+    private boolean verifyAndSetOpticalTubeLength( double optTubeLength ) {
+        if( optTubeLength <= 0 ) {
+            opticalTubeLengthTextField_.setText( Double.toString( actualTubeLength_ ));
+            return false;
+        } else {
+            actualTubeLength_ = optTubeLength;
+            return true;
+        }
+    }
+    
     private void SaveChangesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_SaveChangesActionPerformed
         model_.setEyePieceMagnification(eyePieceMagnification_);
         model_.setIsInfinityCorrectedObjective(isInfinityCorrected_, referenceTubeLength_, manufacturerMagnification_, actualTubeLength_);
@@ -376,13 +399,25 @@ public class MicroscopeModelForm extends javax.swing.JFrame implements ModelUpda
 
     private void refractiveIdxTextField_ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_refractiveIdxTextField_ActionPerformed
         double temp = Double.parseDouble( refractiveIdxTextField_.getText() );
-        if( temp <= 0 ) {
-            refractiveIdxTextField_.setText( Double.toString( curIndexRefraction_ ));
-        } else {
-            curIndexRefraction_ = temp;
-        }
+        verifyAndSetRefractiveIdx(temp);
     }//GEN-LAST:event_refractiveIdxTextField_ActionPerformed
 
+    /**
+     * Sets the refractive Index if it is non-negative, otherwise maintains the same index
+     * and resets any fields with the update
+     * @param refIdx
+     * @return <code>true</code> if set
+     */
+    private boolean verifyAndSetRefractiveIdx( double refIdx ) {
+        if( refIdx <= 0 ) {
+            refractiveIdxTextField_.setText( Double.toString( curIndexRefraction_ ));
+            return false;
+        } else {
+            curIndexRefraction_ = refIdx;
+            return true;
+        }
+    }
+    
     private void isInfCorrectedComboBox_ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_isInfCorrectedComboBox_ActionPerformed
         String temp = (String) isInfCorrectedComboBox_.getSelectedItem();
         if( temp.equals( isInfCorrectedOptions_[0] )) {
@@ -395,25 +430,50 @@ public class MicroscopeModelForm extends javax.swing.JFrame implements ModelUpda
         tubeLengthValidatePrompt();
     }//GEN-LAST:event_isInfCorrectedComboBox_ActionPerformed
 
+    
     private void refMagnificationTextField_ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_refMagnificationTextField_ActionPerformed
         double temp = Double.parseDouble( refMagnificationTextField_.getText() );
-        if( temp <= 0 ) {
-            refMagnificationTextField_.setText( Double.toString(manufacturerMagnification_ ));
-        } else {
-            manufacturerMagnification_ = temp;
-        }
+        verifyAndSetManufacturerMag(temp);
     }//GEN-LAST:event_refMagnificationTextField_ActionPerformed
+
+    /**
+     * Sets the Manufacturer Magnification if it is non-negative, otherwise maintains the same index
+     * and resets any fields with the update
+     * @param manufacturerMag
+     * @return <code>true</code> if set
+     */
+    private boolean verifyAndSetManufacturerMag( double manufacturerMag ) {
+        if( manufacturerMag <= 0 ) {
+            refMagnificationTextField_.setText( Double.toString( manufacturerMagnification_ ));
+            return false;
+        } else {
+            manufacturerMagnification_ = manufacturerMag;
+            return true;
+        }
+    }
 
     private void refTubeLengthTextField_ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_refTubeLengthTextField_ActionPerformed
         double temp = Double.parseDouble( refTubeLengthTextField_.getText() );
-        if( temp <= 0 ) {
-            refTubeLengthTextField_.setText( Double.toString(referenceTubeLength_ ));
-        } else {
-            referenceTubeLength_ = temp;
-        }
+        verifyAndSetRefTubeLength( temp );
         tubeLengthValidatePrompt();
     }//GEN-LAST:event_refTubeLengthTextField_ActionPerformed
 
+     /**
+     * Sets the reference Tube Length if it is non-negative, otherwise maintains the same index
+     * and resets any fields with the update
+     * @param refIdx
+     * @return <code>true</code> if set
+     */
+    private boolean verifyAndSetRefTubeLength( double refTubeLength ) {
+        if( refTubeLength <= 0 ) {
+            refTubeLengthTextField_.setText( Double.toString( referenceTubeLength_ ));
+            return false;
+        } else {
+            referenceTubeLength_ = refTubeLength;
+            return true;
+        }
+    }
+    
     /** 
      * Called When This Form Window Closes - Swing GUI Builder Implementation
      * Mainly Stores most recent input values to persistent memory for default use next time
@@ -433,6 +493,27 @@ public class MicroscopeModelForm extends javax.swing.JFrame implements ModelUpda
         this.setVisible(false);
     }//GEN-LAST:event_formWindowClosing
 
+    private void eyePieceMagnificationTextField_ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_eyePieceMagnificationTextField_ActionPerformed
+        double temp = Double.parseDouble( refTubeLengthTextField_.getText() );
+        verifyAndSetEyePieceMag( temp );
+    }//GEN-LAST:event_eyePieceMagnificationTextField_ActionPerformed
+
+    /**
+     * Sets the eyepiece magnification if it is non-negative and non-zero, otherwise maintains the same index
+     * and resets any fields with the update
+     * @param refIdx
+     * @return <code>true</code> if set
+     */
+    private boolean verifyAndSetEyePieceMag( double eyePieceMag ) {
+         if( eyePieceMag <= 0 ) {
+            eyePieceMagnificationTextField_.setText( Double.toString( eyePieceMagnification_ ));
+            return false;
+        } else {
+            eyePieceMagnification_ = eyePieceMag;
+            return true;
+        }
+    }
+    
     @Override
     public void dispose() {
         formWindowClosing(null);
@@ -527,6 +608,9 @@ public class MicroscopeModelForm extends javax.swing.JFrame implements ModelUpda
     /**
      * Callback to store the new model reference if the model reference is null, 
      * (never initialized or altered through onUnregisteredToModel).
+     * <p>
+     * If the microscope Model contains invalid values, they are set to the defaults
+     * of this class.
      * 
      * @param registeredModel 
      */
@@ -542,13 +626,33 @@ public class MicroscopeModelForm extends javax.swing.JFrame implements ModelUpda
                 model_.setObjectiveRefractiveIdx(curIndexRefraction_);
             } else {
                 //adjust View variables to Microscope Model
-                curNumAperture_ = model_.getNumericalAperture();
-                curIndexRefraction_ = model_.getObjectiveRefractiveIdx();
+                if( !verifyAndSetNumericalAperture( model_.getNumericalAperture() ) ) {
+                    model_.setNumericalAperture(curNumAperture_);
+                }
+                //curNumAperture_ = model_.getNumericalAperture();
+                if( !verifyAndSetRefractiveIdx(model_.getObjectiveRefractiveIdx() ) ) {
+                    model_.setObjectiveRefractiveIdx(curIndexRefraction_);
+                }
+                //curIndexRefraction_ = model_.getObjectiveRefractiveIdx();
                 isInfinityCorrected_ = model_.getIsInfinityCorrectedObjective();
-                manufacturerMagnification_ = model_.getObjectiveMagnification();
-                referenceTubeLength_ = model_.getRefTubeLength();
-                actualTubeLength_ = model_.getOpticalTubeFocalLength();
-                eyePieceMagnification_ = model_.getEyePieceMagnification();
+                setCurrentInfinityCorrectedComboBox();
+                
+                if( !verifyAndSetManufacturerMag( model_.getObjectiveMagnification() ) ) {
+                    model_.setObjectiveMagnification(manufacturerMagnification_);
+                }
+                //manufacturerMagnification_ = model_.getObjectiveMagnification();
+                if( !verifyAndSetRefTubeLength( model_.getRefTubeLength() ) ) {
+                    model_.setRefTubeLength(referenceTubeLength_);
+                }
+                //referenceTubeLength_ = model_.getRefTubeLength();
+                if( !verifyAndSetOpticalTubeLength( model_.getOpticalTubeFocalLength() ) ) {
+                    model_.setOpticalTubeFocalLength( actualTubeLength_ );
+                }
+                //actualTubeLength_ = model_.getOpticalTubeFocalLength();
+                if( verifyAndSetEyePieceMag( model_.getEyePieceMagnification() ) ) {
+                    model_.setEyePieceMagnification(eyePieceMagnification_);
+                }
+                
             }
         }
         

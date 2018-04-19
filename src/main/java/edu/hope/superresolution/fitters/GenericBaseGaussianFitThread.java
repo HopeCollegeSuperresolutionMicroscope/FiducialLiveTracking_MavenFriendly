@@ -28,7 +28,7 @@ import java.awt.Polygon;
  *  a setter function for a prefilterType in the discoverPointsOfInterest() method.
  *  See non-abstract methods for implementation details.
  * 
- * @author Microscope
+ * @author Justin Hanselman
  * @see edu.hope.superresolution.fitters.FitStackThread
  * 
  */

@@ -17,7 +17,7 @@ import java.util.concurrent.locks.ReentrantLock;
  *    instances.  These Instances may be stored in tandem for multiple processes
  *    or for microscope characteristic changes in the same acquisitions.
  *
- * @author Microscope
+ * @author Justin Hanselman
  */
 public abstract class FiducialAreaProcessor implements iFiducialAreaProcessor {
     

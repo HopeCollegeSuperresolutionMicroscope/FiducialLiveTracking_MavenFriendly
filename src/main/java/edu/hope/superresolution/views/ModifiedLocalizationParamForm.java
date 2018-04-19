@@ -18,23 +18,17 @@ import edu.hope.superresolution.models.GaussianFitParamModel;
 import edu.hope.superresolution.models.ModelUpdateDispatcher;
 import edu.hope.superresolution.models.ModelUpdateListener;
 import edu.valelab.gaussianfit.FitAllThread;
-import edu.valelab.gaussianfit.utils.MMWindowAbstraction;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.gui.Overlay;
 import ij.gui.Roi;
 import java.awt.Color;
 import java.awt.Polygon;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.prefs.Preferences;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import org.json.JSONException;
-import org.json.JSONObject;
 import edu.valelab.gaussianfit.utils.NumberUtils;
 import edu.valelab.gaussianfit.utils.ReportingUtils;
 import java.text.ParseException;
@@ -46,7 +40,7 @@ import java.util.logging.Logger;
 
 /**
  *
- * @author nico
+ * @author nico (modified by Justin Hanselman)
  */
 public class ModifiedLocalizationParamForm extends javax.swing.JFrame implements ModelUpdateListener {
    private static final String NOISETOLERANCE = "NoiseTolerance";
@@ -474,7 +468,7 @@ public class ModifiedLocalizationParamForm extends javax.swing.JFrame implements
         preFilterComboBox_.setBounds(150, 230, 90, 20);
 
         fitDimensionsComboBox1.setFont(new java.awt.Font("Lucida Grande", 0, 10)); // NOI18N
-        fitDimensionsComboBox1.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "1", "2", "3" }));
+        fitDimensionsComboBox1.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "1", "2" }));
         fitDimensionsComboBox1.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 fitDimensionsComboBox1ActionPerformed(evt);
@@ -636,7 +630,7 @@ public class ModifiedLocalizationParamForm extends javax.swing.JFrame implements
         jLabel22.setBounds(20, 560, 150, 14);
 
         jLabel23.setFont(new java.awt.Font("Lucida Grande", 0, 10)); // NOI18N
-        jLabel23.setText("Abbe Limit (pixels)");
+        jLabel23.setText("Box Size (pixels)");
         getContentPane().add(jLabel23);
         jLabel23.setBounds(50, 450, 90, 10);
 
@@ -846,7 +840,7 @@ public class ModifiedLocalizationParamForm extends javax.swing.JFrame implements
        // Find maximum in Roi, might not be needed....
       try {
          int val = Integer.parseInt(noiseToleranceTextField_.getText());
-         int halfSize = Integer.parseInt(boxSizeTextField.getText()) / 2;
+         int halfSize = Integer.parseInt(boxSizeTextField.getText());
          int thresholdLevel =(int) NumberUtils.displayStringToInt(IntensityThreshold.getText());
          Polygon pol = FindLocalMaxima.FindMax(siPlus, halfSize, 6, val, thresholdLevel, preFilterType_);
          // pol = FindLocalMaxima.noiseFilter(siPlus.getProcessor(), pol, val);
@@ -991,7 +985,7 @@ public class ModifiedLocalizationParamForm extends javax.swing.JFrame implements
          tT.setNrPhotonsMin(NumberUtils.displayStringToDouble(minWidthTextField.getText()));
          tT.setNrPhotonsMax(NumberUtils.displayStringToDouble(maxWidthTextField.getText()));
          tT.setMaxIterations(Integer.parseInt(maxIterationsTextField.getText()));
-         tT.setBoxSize(Integer.parseInt(boxSizeTextField.getText()));
+         tT.setBoxSize(Integer.parseInt(boxSizeTextField.getText()) );  //AbbeLimit (Airy Radius) is Only half the box
          tT.setShape(fitDimensionsComboBox1.getSelectedIndex() + 1);
          tT.setFitMode(dataScalingMethodComboBox.getSelectedIndex() + 1);
          tT.setEndTrackBool(endTrackCheckBox_.isSelected());

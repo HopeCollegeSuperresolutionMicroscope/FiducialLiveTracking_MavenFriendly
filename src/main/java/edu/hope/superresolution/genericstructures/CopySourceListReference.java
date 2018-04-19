@@ -13,7 +13,7 @@ import edu.hope.superresolution.Utils.CopyUtils;
  *   This Call Provides a copy of the reference, while allowing 
  *   the appropriate calling context to access the reference for use in List Updates
  * 
- * @author Microscope
+ * @author Justin Hanselman
  */
 public class CopySourceListReference<T, K> {
     

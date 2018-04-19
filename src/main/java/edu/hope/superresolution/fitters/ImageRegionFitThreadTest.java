@@ -48,7 +48,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * </pre> 
  * 
  *
- * @author Microscope
+ * @author Justin Hanselman
  */
 abstract public class ImageRegionFitThreadTest extends ExtendedGaussianInfo implements Runnable {
     
@@ -439,7 +439,16 @@ abstract public class ImageRegionFitThreadTest extends ExtendedGaussianInfo impl
      */
     abstract public boolean roiIsValid( Roi roi );
     
-    //Initializes Threads to Search Through All Local Maximums found in the the method Thread
+    /**
+     * Initializes Threads to search through all ImageProcessors of a given ImagePlus, corresponding to 
+     * an Roi and a z position.
+     * 
+     * @param siPlus - The imagePlus to process All processors at the same z-postion
+     * @param position - The z-position of processors to analyze fits in
+     * @param nrThreads - the number of threads to spawn
+     * @param originalRoi - the ROI to analyze such fits in
+     * @return 
+     */
     @SuppressWarnings("unchecked")
    private int analyzeImagePlus(ImagePlus siPlus, int position, int nrThreads, Roi originalRoi ) {
 
@@ -557,8 +566,8 @@ abstract public class ImageRegionFitThreadTest extends ExtendedGaussianInfo impl
       ProgressThread pt = new ProgressThread(sourceList_);
       pt.init();
       
-      
       } catch (OutOfMemoryError ome) {
+         ome.printStackTrace();
          ij.IJ.error("Out Of Memory");
       }
 

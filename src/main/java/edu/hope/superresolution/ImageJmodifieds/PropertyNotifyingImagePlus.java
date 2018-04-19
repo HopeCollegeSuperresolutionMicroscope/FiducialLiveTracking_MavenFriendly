@@ -84,7 +84,7 @@ import java.util.Set;
  *       and ImageJ2 is not yet completely available, this class is a nice account for 
  *       the incredibly unreliable source Code and its interaction with Canvas and ImageWindow.
  * 
- * @author Desig
+ * @author Justin Hanselman
  */
 public class PropertyNotifyingImagePlus extends ImagePlus {
 
@@ -1472,6 +1472,14 @@ public class PropertyNotifyingImagePlus extends ImagePlus {
     //An Access-ordered Event Queue of ClassNames and Their respective Objects
     private final Map<String, MasterSpecificEvent> pendingEventQueue_ = Collections.synchronizedMap( new LinkedHashMap<String, MasterSpecificEvent>( 20, .75f, true ) );
 
+    /**
+     * Nullary Constructor - For Later Initialization
+     * 
+     */
+     public PropertyNotifyingImagePlus() {
+         
+     }
+    
      /**
      * Constructs a PropertyNotifyingImagePlus from an Image or BufferedImage. The first
      * argument will be used as the title of the window that displays the image.
