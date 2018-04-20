@@ -793,8 +793,8 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         // And We did not get a null LocationModel as a result of not finding anything
         if (lastFLocModel_ != null && currentAcqName_ != null) {
             iDriftModel pixeldrift = lastFLocModel_.getPixelSizeAbsoluteDriftModel();
-            FocusFrameTranslationObj tObj = new FocusFrameTranslationObj( pixeldrift.getXFromStartTranslation(),
-                                                    pixeldrift.getYFromStartTranslation(), lastFrame, numImagesTaken_);
+            FocusFrameTranslationObj tObj = new FocusFrameTranslationObj( pixeldrift.getXTranslation(),
+                                                    pixeldrift.getYTranslation(), lastFrame, numImagesTaken_);
             //Since Synchronized list, already thread-safe
             translationPoints_.add(tObj);
         }
@@ -824,7 +824,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         //Average
         for( FiducialArea fArea : fiducials ) {
             if( !fArea.getRawSelectedSpot().isVirtual() ) {
-                avgs[0] += fArea.getDriftInfo().getZFromStartTranslation();
+                avgs[0] += fArea.getDriftInfo().getZTranslation();
                 numZMeasures++;
             }
         }
@@ -832,7 +832,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         
         for( FiducialArea fArea : fiducials ) {
             if( !fArea.getRawSelectedSpot().isVirtual() ) {
-                avgs[1] += Math.pow( fArea.getDriftInfo().getZFromStartTranslation() - avgs[0], 2);
+                avgs[1] += Math.pow( fArea.getDriftInfo().getZTranslation() - avgs[0], 2);
             }
         }
         avgs[1] = Math.sqrt( avgs[1]/numZMeasures );
@@ -856,7 +856,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         int numZMeasures = 0;
         for( FiducialArea fArea : fiducials ) {
             if( !fArea.getRawSelectedSpot().isVirtual() ) {
-                avgZDepth += fArea.getDriftInfo().getZFromStartTranslation();
+                avgZDepth += fArea.getDriftInfo().getZTranslation();
                 //sumZUncertaintiesSquare += Math.pow(fArea.getRelativeFocusDistanceUncertainty(), 2);
                 numZMeasures++;
             }
@@ -867,7 +867,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         double stdDev = 0;
         for( FiducialArea fArea : fiducials ) {
             if( !fArea.getRawSelectedSpot().isVirtual() ) {
-                stdDev += Math.pow( fArea.getDriftInfo().getZFromStartTranslation()- avgZDepth, 2);
+                stdDev += Math.pow( fArea.getDriftInfo().getZTranslation()- avgZDepth, 2);
             }
         }
         return Math.sqrt(stdDev/numZMeasures);
@@ -889,7 +889,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         
         for( FiducialArea fArea : fiducials ) {
             if( fArea.getVirtualFrameTrackNumber() == 0 ) {
-                sumUncertainties += Math.pow( fArea.getDriftInfo().getZFromStartTranslation(), 2);
+                sumUncertainties += Math.pow( fArea.getDriftInfo().getZTranslation(), 2);
                 numZMeasures++;
             }
         }

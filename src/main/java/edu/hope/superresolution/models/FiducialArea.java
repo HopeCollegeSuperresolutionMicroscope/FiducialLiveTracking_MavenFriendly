@@ -1259,8 +1259,8 @@ public class FiducialArea extends QueuedStateBroadcaster {
             Point2D.Double dZObj = computeRelativeZDistanceAndUncertainties();
 
             //We Will need to update the Dz of this model
-            updateDriftInfo(trackDriftInfo_.getFrameNumber(), trackDriftInfo_.getXFromStartTranslation(),
-                    trackDriftInfo_.getXTranslationUncertainty(), trackDriftInfo_.getYFromStartTranslation(), trackDriftInfo_.getYTranslationUncertainty(),
+            updateDriftInfo(trackDriftInfo_.getFrameNumber(), trackDriftInfo_.getXTranslation(),
+                    trackDriftInfo_.getXUncertainty(), trackDriftInfo_.getYTranslation(), trackDriftInfo_.getYUncertainty(),
                     dZObj.x, dZObj.y);
         }
         

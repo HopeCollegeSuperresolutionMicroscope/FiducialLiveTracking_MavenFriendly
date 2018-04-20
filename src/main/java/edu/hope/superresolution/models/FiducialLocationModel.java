@@ -13,6 +13,7 @@ import edu.hope.superresolution.Utils.CopyUtils;
 import edu.hope.superresolution.Utils.IJMMReportingUtils;
 import edu.hope.superresolution.exceptions.NoFiducialException;
 import edu.hope.superresolution.exceptions.NoTrackException;
+import edu.hope.superresolution.genericstructures.AbstractDriftModel;
 import edu.hope.superresolution.genericstructures.FiducialTravelDiff2D;
 import edu.hope.superresolution.genericstructures.TravelMatchCase;
 import edu.hope.superresolution.genericstructures.iDriftModel;
@@ -77,8 +78,8 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
     
     //Drift Models for use with tracking how far the Fiducial Model has traveled
     private int validStatisticalDriftParticles_ = 0; //Used to store the number of samples used in Drift (excluding virtual placeholders)
-    private iDriftModel absoluteDriftInfo_;
-    private iDriftModel relativeToLastModelDriftInfo_;
+    private AbstractDriftModel absoluteDriftInfo_;
+    private AbstractDriftModel relativeToLastModelDriftInfo_;
     
     private final List<FiducialArea> fiducialAreaList_ = Collections.synchronizedList( new ArrayList< FiducialArea >() );  //List of Selected Areas
     private final FiducialAreaCallback fAreaCallBack_ = new FiducialAreaCallback();
@@ -134,7 +135,7 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
     //Copy Constructor, with new ImagePlus
 
     /**
-     *  Modifed Copy Constructor 
+     *  Modified Copy Constructor 
      *   (FiducialModel characteristics as basis)
      * <p>
      * This will apply an imagePlus as the reference imagePlus to the resulting Object. All non-tracked information will
@@ -394,10 +395,10 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
         
         //Create Relative and absolute Drift Info
         relativeToLastModelDriftInfo_ = new LinearDriftModel2D(acquisitionTrackNumber_, avgXTranslate, totalXUncertainty, avgYTranslate, totalYUncertainty, iDriftModel.DriftUnits.nm);
-        absoluteDriftInfo_ = new LinearDriftModel2D( acquisitionTrackNumber_, avgXTranslate + basis.absoluteDriftInfo_.getXFromStartTranslation(),
-                                                       Math.sqrt(Math.pow(totalXUncertainty, 2) + Math.pow(basis.absoluteDriftInfo_.getXTranslationUncertainty(), 2)),
-                                                        avgYTranslate + basis.absoluteDriftInfo_.getYFromStartTranslation(),
-                                                        Math.sqrt(Math.pow(totalYUncertainty, 2) + Math.pow(basis.absoluteDriftInfo_.getYTranslationUncertainty(), 2)),
+        absoluteDriftInfo_ = new LinearDriftModel2D( acquisitionTrackNumber_, avgXTranslate + basis.absoluteDriftInfo_.getXTranslation(),
+                                                       Math.sqrt(Math.pow(totalXUncertainty, 2) + Math.pow(basis.absoluteDriftInfo_.getXUncertainty(), 2)),
+                                                        avgYTranslate + basis.absoluteDriftInfo_.getYTranslation(),
+                                                        Math.sqrt(Math.pow(totalYUncertainty, 2) + Math.pow(basis.absoluteDriftInfo_.getYUncertainty(), 2)),
                                                         basis.absoluteDriftInfo_.getDriftUnits() );
         
         //Update the List in case of references
@@ -760,7 +761,7 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
      * 
      * @return 
      */
-    public iDriftModel getDriftRelativeToBaseFiducialModel() {
+    public AbstractDriftModel getDriftRelativeToBaseFiducialModel() {
         return relativeToLastModelDriftInfo_;
     }
     
@@ -802,7 +803,7 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
      * 
      * @return The DriftModel containing translation information from the first FiducialLocationModel to the current location Model
      */
-    public iDriftModel getDriftAbsoluteFromFirstModel() {
+    public AbstractDriftModel getDriftAbsoluteFromFirstModel() {
         return absoluteDriftInfo_;
     }
     
