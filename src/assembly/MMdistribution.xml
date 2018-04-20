@@ -16,6 +16,8 @@
       <includes>
           <include>${project.groupId}:${project.artifactId}</include>
           <include>edu.valelab:gaussianfit</include>
+          <!-- LooseBean Implementation for functionality with any BeanInfo -->
+          <include>com.github.hanseltime:LooseBeans</include>
       </includes>
       <unpack>true</unpack>
       <scope>runtime</scope>

@@ -18,6 +18,7 @@
           <include>edu.valelab:gaussianfit</include>
           <!-- Since this was developed on JDK 6 due to MM code base, we need paired down guava -->
           <include>com.google.guava:guava</include>
+          <include>com.github.hanseltime:LooseBeans</include>
       </includes>
       <unpack>true</unpack>
       <scope>runtime</scope>
