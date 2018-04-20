@@ -11,7 +11,6 @@ import edu.hope.superresolution.autofocus.FiducialAutoFocus;
 import edu.hope.superresolution.exceptions.NoFiducialException;
 import edu.hope.superresolution.exceptions.NoTrackException;
 import edu.hope.superresolution.genericstructures.VirtualDirectoryManager;
-import edu.hope.superresolution.genericstructures.iCSVCompatible;
 import edu.hope.superresolution.livetrack.LiveTracking;
 import edu.hope.superresolution.views.FiducialSelectForm;
 import edu.hope.superresolution.views.ImageViewController;

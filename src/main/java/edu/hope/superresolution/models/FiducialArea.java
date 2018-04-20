@@ -8,6 +8,7 @@ package edu.hope.superresolution.models;
 import edu.hope.superresolution.MMgaussianfitmods.datasubs.BoundedSpotData;
 import edu.hope.superresolution.MMgaussianfitmods.datasubs.ExtendedGaussianInfo;
 import edu.hope.superresolution.Utils.IJMMReportingUtils;
+import edu.hope.superresolution.genericstructures.AbstractDriftModel;
 import edu.hope.superresolution.genericstructures.CopySourceListReference;
 import edu.hope.superresolution.genericstructures.FiducialTravelDiff2D;
 import ij.gui.Roi;
@@ -411,7 +412,7 @@ public class FiducialArea extends QueuedStateBroadcaster {
     private double refSigmaNautUncertainty_ = 0; //Uncertainty in the SigmaNaut (stdDev in Average)
     
     //Drift Model Storing any track information for distance from the Focus Plane and any Track Spot
-    private iDriftModel trackDriftInfo_ = new LinearDriftModel3D(1,0,0,0,0,0,0,iDriftModel.DriftUnits.nm); //Model of where the current FiducialArea is tracked to have drifted from a previous area
+    private AbstractDriftModel trackDriftInfo_ = new LinearDriftModel3D(1,0,0,0,0,0,0,iDriftModel.DriftUnits.nm); //Model of where the current FiducialArea is tracked to have drifted from a previous area
     //storage for updating FiducialAreas that are listeners, or anything listening for update cycles
     private int refreshDependentQueueHandle_; //The handle to a queue that will dispatch events on properties that are finalized through update Refreshed
     private FiducialArea sourceDependentFArea_ = null; //FiducialArea that this Fiducial Area is dependent on changes for
@@ -1073,7 +1074,7 @@ public class FiducialArea extends QueuedStateBroadcaster {
      * @see #getFocusPlaneSigmaRefUncertainty() 
      * @see #getVirtualFrameTrackNumber() 
      */
-    public iDriftModel getDriftInfo() {
+    public AbstractDriftModel getDriftInfo() {
         return trackDriftInfo_;
     }
     
