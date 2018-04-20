@@ -27,11 +27,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.table.DefaultTableModel;
 import mmcorej.CMMCore;
 import mmcorej.TaggedImage;
 import org.json.JSONException;
@@ -55,6 +58,90 @@ import org.micromanager.utils.MMScriptException;
  */
 public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
 
+    //For Debugging Purposes
+    private Map< Integer, ZTravelRecord > travelRecord_ = Collections.synchronizedMap( new HashMap<Integer, ZTravelRecord>() );
+    private final FocusRecordReviewFrame recordView_ = new FocusRecordReviewFrame(travelRecord_);
+    private ZTravelRecord curTravelRecord_;
+    private int numFocuses_ = 0;
+            
+    public static class ZStepRecord {
+        
+        private final double distanceInSequence_;
+        private final double prevOutOfFocusZScore_;
+        private final double prevOutOfFocusZScoreUncertainty_;
+        private final double currentZScore_;
+        private final double currentZScoreUncertainty_;      
+        private final boolean isInSlop_;
+        
+        public ZStepRecord( double distanceInSequence, double prevOoFScore, double prevOoFUncertainty, 
+                                double curScore, double curUncertainty, boolean isInSlop ) {
+            distanceInSequence_ = distanceInSequence;
+            prevOutOfFocusZScore_ = prevOoFScore;
+            prevOutOfFocusZScoreUncertainty_ = prevOoFUncertainty;
+            currentZScore_ = curScore;
+            currentZScoreUncertainty_ = curUncertainty;
+            isInSlop_ = isInSlop;
+        }
+        
+        public double getDistanceInSequence() {
+            return distanceInSequence_;
+        }
+        
+        public double getPrevOofScore() {
+            return prevOutOfFocusZScore_;
+        }
+        
+        public double getPrevOofUncertainty() {
+            return prevOutOfFocusZScoreUncertainty_;
+        }
+        
+        public double getCurScore() {
+            return currentZScore_;
+        }
+        
+        public double getCurUncertainty() {
+            return currentZScoreUncertainty_;
+        }
+        
+        /**
+         * Returns the object as if it were a row according to the getColumnNames() function
+         * @return 
+         */
+        public Object[] getRowArray( ) {
+            return new Object[] { distanceInSequence_, prevOutOfFocusZScore_, prevOutOfFocusZScoreUncertainty_, currentZScore_, currentZScoreUncertainty_, isInSlop_  };
+        }
+        
+        public static final String[] columnNames = new String[]{ "Distance From 0", "Prev Out Of Focus", "Sigma Prev", "Cur Score", "Sigma_Cur", "Is Slop" };
+        
+        public static Object[] getColumnNames() {
+            return columnNames;
+        }
+    }
+    
+    /**
+     * A Record of all Steps and their values taken within them.  Extends TableModel
+     */
+    public static class ZTravelRecord extends DefaultTableModel {
+        
+        private final List<ZStepRecord> steps_ = new ArrayList<ZStepRecord>();
+        private final double threshold_;
+        
+        public ZTravelRecord(double threshold) {
+            super( ZStepRecord.getColumnNames(), 0);
+            threshold_ = threshold;
+        }
+        
+        public void addStepRecord( ZStepRecord record ) {
+            steps_.add(record);
+            //Add to Table Model
+            addRow( record.getRowArray() );
+        }
+        
+        public double getThreshold() {
+            return threshold_;
+        }
+    }
+            
     public final static String DEVICE_NAME = "Fiducial Tracking and Fitting AutoFocus";
     
     private final static String BASE_INCREMENT_UM_STR = "Step Increment (um)";
@@ -498,6 +585,16 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
      */
     private void startNewAutoFocusSession() {
   
+        //Initialize the Focus Records
+        if( !recordView_.isVisible() ) {
+            /* Create and display the form */
+            java.awt.EventQueue.invokeLater(new Runnable() {
+                public void run() {
+                    recordView_.setVisible(true);
+                }
+            });
+        }
+        
         //Due to uncertainty about acquisition back end, get all Current information in same section
         String currentAcqPath = app_.getAcquisitionPath();
         String[] openAcqs = app_.getAcquisitionNames();
@@ -708,12 +805,17 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         numImagesTaken_ = 0;
         int numStepsInDir = 0;
         int prevNumStepsInDir = 0;
+        //Z Score Tracking
+        numFocuses_++;
+        curTravelRecord_ =  new ZTravelRecord( threshold_ );
         do {
             try {
                 //Currently just take a picture at core level and shoot it to ipCurrent_
                 snapSingleImage();
                 //Since We're storing the score in object scope, compute it
                 computeScore(ipCurrent_);
+                //Guess we'll just have to add this here
+                curTravelRecord_.addStepRecord( new ZStepRecord( globalPos_*BASE_STEP_UM, prevOutOfFocusZScore_, prevOutOfFocusZUncertainty_, currentRelativeZScore_, currentRelativeZUncertainty_, false ));
                 if( beginningStdDev_ == 0 ) {
                     beginningStdDev_ = currentRelativeZUncertainty_;
                 }
@@ -752,6 +854,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
                     dirSwitch = true;
                     backAndForthCount++;
                     outOfFocus = true;
+                    curTravelRecord_.addStepRecord( new ZStepRecord( globalPos_*BASE_STEP_UM, prevOutOfFocusZScore_, prevOutOfFocusZUncertainty_, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, false ));
                 } else {
                     //If We have had no Fiducial For the max number of no Focus (assume it's too far gone)
                     outOfFocus = false;
@@ -804,6 +907,9 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
             absYPixelTranslation_ = lastFLocModel_.getAvgAbsoluteYPixelTranslation();
             absXPixelTranslation_ = lastFLocModel_.getAvgAbsoluteXPixelTranslation();
         }*/
+        //Add the travelRecord to the hash
+        travelRecord_.put(numFocuses_, curTravelRecord_);
+        
         app_.getAcquisitionEngine2010().resume();
 
         return 0;
@@ -1064,30 +1170,32 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         ij.IJ.log( "Travel Slop in Direction:" + baseMult + " and for number of Steps "+ (SLOP_TRAVEL/BASE_STEP_UM + offSet));
         
         //Test Case, First Slop Movement Before Checking
-        /*if( TEST_FIRST_SLOP_MOVE ) {
-            moveZStageRelative( BASE_STEP_UM );
-        }*/
+        
+        moveZStageRelative( baseMult * BASE_STEP_UM );
+
         
         boolean noFid = false;
         double stepInc = 0;
         double prevZFocusWithUncertainty = 0;
         while( stepInc < SLOP_TRAVEL + offSet * BASE_STEP_UM ) {
-            //Compues Image Score at same location on first run but different
+            //Computes Image Score at same location on first run but different
             // time location.  This may result in a false positive. i.e. the 
             // slop will think its deslopped and start focus evaluation again
             snapSingleImage();
             try {
                 computeScore( ipCurrent_ );
+                curTravelRecord_.addStepRecord( new ZStepRecord( globalPos_*BASE_STEP_UM, prevOutOfFocusZScore_, prevOutOfFocusZUncertainty_, currentRelativeZScore_, currentRelativeZUncertainty_, true ));
             } catch ( NoTrackException ex ) {
                 noFid = true;
                 slopNoFocusCount_++;
+                curTravelRecord_.addStepRecord( new ZStepRecord( globalPos_*BASE_STEP_UM, prevOutOfFocusZScore_, prevOutOfFocusZUncertainty_, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, true ));
             }
             
             //If We have achieved a better score, we should see increase on second iteration
             if( !noFid && currentRelativeZScore_ < prevOutOfFocusZScore_ + prevOutOfFocusZUncertainty_) { 
-                if( currentRelativeZScore_ < prevZFocusWithUncertainty + currentRelativeZUncertainty_ ) {
+                if( currentRelativeZScore_ < prevZFocusWithUncertainty ) {
                     prevOutOfFocusZScore_ = currentRelativeZScore_;
-                    prevOutOfFocusZScore_ = currentRelativeZUncertainty_;
+                    prevOutOfFocusZUncertainty_ = currentRelativeZUncertainty_;
                     return true;
                 } else {
                     prevZFocusWithUncertainty = currentRelativeZScore_ + currentRelativeZUncertainty_;
