@@ -82,13 +82,13 @@ public interface iDriftModel extends Serializable {
      * @see DriftUnits
      * @see iDriftModel#getDriftUnits()
      */
-    public double getXFromStartTranslation();
+    public double getXTranslation();
      
      /**
      * Gets the Uncertainty associated with the X Translation of the frame
      * @return +/- Uncertainty in (DriftUnits)
      */
-    public double getXTranslationUncertainty();
+    public double getXUncertainty();
     
      /**
      * Gets the Y Translation that this frame has drifted from the start Frame in the corresponding unit.
@@ -97,13 +97,13 @@ public interface iDriftModel extends Serializable {
      * @see DriftUnits
      * @see iDriftModel#getDriftUnits()
      */
-    public double getYFromStartTranslation();
+    public double getYTranslation();
     
     /**
      * Gets the Uncertainty associated with the Y Translation of the frame
      * @return +/- Uncertainty in (DriftUnits)
      */
-    public double getYTranslationUncertainty();
+    public double getYUncertainty();
     
     /**
      * Gets the Z Translation that this frame has drifted from the start Frame in the corresponding unit.
@@ -112,13 +112,13 @@ public interface iDriftModel extends Serializable {
      * @see DriftUnits
      * @see iDriftModel#getDriftUnits()
      */
-    public double getZFromStartTranslation();
+    public double getZTranslation();
     
     /**
      * Gets the Uncertainty associated with the Z Translation of the frame
      * @return +/- Uncertainty in (DriftUnits)
      */
-    public double getZTranslationUncertainty();
+    public double getZUncertainty();
     
     /**
      * Gets the Drift Units for the Translation
@@ -134,7 +134,7 @@ public interface iDriftModel extends Serializable {
      * <br>
      * The Axis Point assumes 3 orthogonal axes along X and Y rows and columns in the pixel array for the frame.
      * Z is thus perpendicular and should obey Right-Hand Rule Mechanics.  This is best explained and 
-     * measured against getZFromStartTranslation(), since a negative value for the frame Z drift with a positive axis point,
+     * measured against getZTranslation(), since a negative value for the frame Z drift with a positive axis point,
      * should mean that the axis is closer to the original reference frame.
      * <br>
      * The point 0,0,0 is located at the upper left corner of the image, and the Z used assumes 0 is the current frame

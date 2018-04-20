@@ -5,6 +5,7 @@
  */
 package edu.hope.superresolution.models;
 
+import edu.hope.superresolution.genericstructures.AbstractDriftModel;
 import edu.hope.superresolution.genericstructures.iDriftModel;
 import javafx.geometry.Point3D;
 
@@ -17,17 +18,7 @@ import javafx.geometry.Point3D;
  * 
  * @author Justin Hanselman
  */
-public class LinearDriftModel2D implements iDriftModel {
-    
-    private int frameNum_;
-    private double xFromStartTranslation_;
-    private double xTranslationUncertainty_;
-    private double yFromStartTranslation_;
-    private double yTranslationUncertainty_;
-    private DriftUnits unit_;
-    
-    //final variables for the sake of filler
-    private final Point3D nonRotations_ = new Point3D(0,0,0);
+public class LinearDriftModel2D extends AbstractDriftModel {
 
     /**
      * One-time initialization of members.  Final in nature, but class remains non-final for extensions.
@@ -40,67 +31,8 @@ public class LinearDriftModel2D implements iDriftModel {
      * @param unit 
      */
     public LinearDriftModel2D( int frameNum, double xFromStartTranslation, double xTranslationUncertainty, double yFromStartTranslation, double yTranslationUncertainty, DriftUnits unit ) {
-        frameNum_ = frameNum;
-        xFromStartTranslation_ = xFromStartTranslation;
-        xTranslationUncertainty_ = xTranslationUncertainty;
-        yFromStartTranslation_ = yFromStartTranslation;
-        yTranslationUncertainty_ = yTranslationUncertainty;
-        unit_ = unit;
-    }
-    
-    @Override
-    public int getFrameNumber() {
-        return frameNum_;
-    }
-
-    @Override
-    public double getXFromStartTranslation() {
-        return xFromStartTranslation_;
-    }
-
-    @Override
-    public double getXTranslationUncertainty() {
-        return xTranslationUncertainty_;
-    }
-
-    @Override
-    public double getYFromStartTranslation() {
-        return yFromStartTranslation_;
-    }
-
-    @Override
-    public double getYTranslationUncertainty() {
-        return yTranslationUncertainty_;
-    }
-
-    @Override
-    public double getZFromStartTranslation() {
-        return 0;
-    }
-
-    @Override
-    public double getZTranslationUncertainty() {
-        return 0;
-    }
-
-    @Override
-    public DriftUnits getDriftUnits() {
-        return unit_;
-    }
-
-    @Override
-    public Point3D getRotationAxisPoint() {
-        return nonRotations_;
-    }
-
-    @Override
-    public Point3D getEulerRotations() {
-        return nonRotations_;
-    }
-
-    @Override
-    public Point3D getEulerRotationUncertainty() {
-        return nonRotations_;
+        super( frameNum, xFromStartTranslation, xTranslationUncertainty, yFromStartTranslation, yTranslationUncertainty,
+                0, 0, new Point3D(0,0,0), new Point3D(0,0,0), new Point3D(0,0,0), unit );
     }
 
     /**
@@ -113,14 +45,18 @@ public class LinearDriftModel2D implements iDriftModel {
      */
     @Override
     public iDriftModel generatePixelConversion(int pixelSize, DriftUnits unit) {
-        if( unit_ == iDriftModel.DriftUnits.pixels || unit == iDriftModel.DriftUnits.pixels ) {
+        
+        DriftUnits instanceUnits = getDriftUnits();
+        
+        if( instanceUnits == iDriftModel.DriftUnits.pixels || unit == iDriftModel.DriftUnits.pixels ) {
             return this;
         }
         
-        double pixel = (unit.getUnitScaleFactor(unit_) * pixelSize);
+        double pixel = (unit.getUnitScaleFactor(instanceUnits) * pixelSize);
         
-        return new LinearDriftModel2D( frameNum_, xFromStartTranslation_ / pixel, xTranslationUncertainty_ / pixel,
-                                            yFromStartTranslation_ / pixel,  yTranslationUncertainty_ / pixel, iDriftModel.DriftUnits.pixels );
+        return new LinearDriftModel2D( getFrameNumber(), getXTranslation() / pixel, getXUncertainty() / pixel,
+                                            getYTranslation() / pixel,  getYUncertainty() / pixel,  iDriftModel.DriftUnits.pixels );
+        
     }
     
     
