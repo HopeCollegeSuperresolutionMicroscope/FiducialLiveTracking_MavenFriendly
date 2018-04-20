@@ -11,6 +11,7 @@ import edu.hope.superresolution.autofocus.FiducialAutoFocus;
 import edu.hope.superresolution.exceptions.NoFiducialException;
 import edu.hope.superresolution.exceptions.NoTrackException;
 import edu.hope.superresolution.genericstructures.VirtualDirectoryManager;
+import edu.hope.superresolution.genericstructures.iCSVCompatible;
 import edu.hope.superresolution.livetrack.LiveTracking;
 import edu.hope.superresolution.views.FiducialSelectForm;
 import edu.hope.superresolution.views.ImageViewController;
@@ -18,6 +19,8 @@ import edu.hope.superresolution.views.ModifiedLocalizationParamForm;
 import ij.ImagePlus;
 import ij.gui.ImageWindow;
 import ij.process.ImageProcessor;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import org.micromanager.api.ScriptInterface;
@@ -29,10 +32,10 @@ import org.micromanager.utils.MMException;
  *  Overarching Model that pertains to a given Image set
  *   This image set is defined by its image window and 
  *     is characterized by multiple FiducialLcoationModels ( 1 to each image)
- * 
+ * <p>
  *  A new LocationAcquisitionModel correlates to a new query
  *     To Support multiple stored acquisition models in the future for operation
- * 
+ * <p>
  * As the Top level Model, this creates and links views to selectedAcquisitionLocations_
  *   Additionally, this model itself may be linked to view that are created in the calling context (plugin)
  * 
