@@ -723,13 +723,14 @@ public class FiducialLocationModel extends ModelUpdateDispatcher implements Fidu
             BoundedSpotData spot = fArea.getRawSelectedSpot();
             if( spot!= null && !spot.isVirtual() ) {
                 avgDiffs += spot.getWidth()/4 - fArea.getFocusPlaneSigmaRef();
-                avgUncertaintyDiffs = spot.getSigma() - fArea.getFocusPlaneSigmaRefUncertainty();
+                avgUncertaintyDiffs += spot.getSigma() - fArea.getFocusPlaneSigmaRefUncertainty();
                 fArea.setRefSigmaNaut( spot.getWidth()/4, spot.getSigma() );
                 numReal++;
             }
         }
         
         avgDiffs /= numReal;
+        avgUncertaintyDiffs /= numReal;
         
         //For Virtuals, reiterate with the average change applied to their current refSigmaNauts
         for( int i = 0; i< fiducialAreaList_.size(); ++i ) {
