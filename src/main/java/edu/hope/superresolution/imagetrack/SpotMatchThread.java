@@ -576,7 +576,8 @@ public class SpotMatchThread implements Runnable {
                         }
                         i++;
                     }
-                    createWindow(prevFAreas_.get(0).getImagePlus().getProcessor(), paintRois);
+                    
+                    createWindow(/*prevFAreas_*/curFAreas.get(0).getImagePlus().getProcessor(), paintRois);
 
                     //This synchronization allows for multiple operations on atomic cureFromVirtualMatchCaseRatio as well
                     synchronized (matchResults_) {
@@ -632,10 +633,11 @@ public class SpotMatchThread implements Runnable {
         List<FiducialTravelDiff2D> shiftCandidates;
         while( it.hasNext() ) {/*for( List<FiducialTravelDiff2D> shiftCandidates : realSpotCandidates ) {*/
             shiftCandidates = it.next();
+            //This will return one match by removing it fom the list of shiftCandidates for that FiducialArea
             FiducialTravelDiff2D match = match(compShift, shiftCandidates);
             if (match != null) {
                 mCase.addMatch(match);
-                //Clean Up the List if there is a null value
+                //Clean Up the List if there is a null value (in other words, the FiducialArea has no more translations to provide for comparison)
                 if( shiftCandidates.isEmpty() ) {
                     //Add the previous value to the noSpotFAreas List for virtuals
                     noSpotFAreasBuffer_.add( new NoSpotFAreaData( match.prevSpot_, match.areaOwnerRef_ ) );
@@ -705,7 +707,11 @@ public class SpotMatchThread implements Runnable {
     }
  
     private FiducialTravelDiff2D match(FiducialTravelDiff2D ref, List<FiducialTravelDiff2D> compList) {
-
+        
+        //Conventional Wisdom would say to hold the iteration, but for now, we'll just choose the most certain fit
+        int mostCloseIdx = -1;
+        double mostCloseSum = 0.0;
+        
         FiducialTravelDiff2D diff;
         for (int i = 0; i < compList.size(); ++i ) {
             diff = compList.get(i);
@@ -722,11 +728,22 @@ public class SpotMatchThread implements Runnable {
                     if (Math.abs(diff.xDiffs_ - ref.xDiffs_) < (diff.xDiffractionUncertainty_ + ref.xDiffractionUncertainty_)
                             && Math.abs(diff.yDiffs_ - ref.yDiffs_) < (diff.yDiffractionUncertainty_ + ref.yDiffractionUncertainty_)) {
                         //Secondary Filter of Remaining Spots in the case of defocusing and overlapping Gaussians
-                        //return compList.get(i);
-                        return compList.remove(i);  //May Be optimized Later (but large data is not expected)
+                        //Find the most close Index by comparison to battle overlap
+                        double curClosenessRadii = Math.sqrt( Math.pow(diff.xDiffs_ - ref.xDiffs_, 2) + Math.pow(diff.yDiffs_ - ref.yDiffs_, 2) );
+                        if( mostCloseSum > curClosenessRadii || mostCloseIdx == -1 ) {
+                            mostCloseSum = curClosenessRadii;
+                            mostCloseIdx = i;
+                        } 
+                        
+                        //return compList.remove(i);  //May Be optimized Later (but large data is not expected)
                     }
                 }
             }
+        }
+        
+        //Return the best match to the difference
+        if( mostCloseIdx != -1 ) {
+            return compList.get(mostCloseIdx);
         }
         
         return null;

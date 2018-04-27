@@ -9,7 +9,6 @@ import com.google.common.util.concurrent.AtomicDouble;
 import edu.hope.superresolution.genericstructures.FiducialTravelDiff2D;
 import edu.hope.superresolution.genericstructures.TravelMatchCase;
 import edu.hope.superresolution.models.FiducialArea;
-import edu.hope.superresolution.processors.FiducialAreaProcessor;
 import edu.valelab.gaussianfit.utils.ReportingUtils;
 import ij.ImagePlus;
 import ij.gui.Roi;
