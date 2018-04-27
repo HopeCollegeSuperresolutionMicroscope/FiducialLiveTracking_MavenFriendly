@@ -6,8 +6,12 @@
 package edu.hope.superresolution.autofocus;
 
 import java.awt.event.FocusAdapter;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import javax.swing.ComboBoxModel;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
@@ -23,12 +27,15 @@ import javax.swing.table.TableModel;
  */
 public class FocusRecordReviewFrame extends javax.swing.JFrame {
 
-    private Map<Integer, FiducialAutoFocus.ZTravelRecord> sharedTravelRecord_ = null;
+    private Map<String, FiducialAutoFocus.ZTravelRecord> sharedTravelRecord_ = null;
+    private SortedSet<String> keySet_;
+    private DefaultComboBoxModel comboBox_ = null;
+    
     
     /**
      * Creates new form FocusRecordReview
      */
-    public FocusRecordReviewFrame( Map<Integer, FiducialAutoFocus.ZTravelRecord> synchronizedRecord ) {
+    public FocusRecordReviewFrame( Map<String, FiducialAutoFocus.ZTravelRecord> synchronizedRecord ) {
         sharedTravelRecord_ = synchronizedRecord;
         initComponents();
         jComboBox1.addFocusListener(new FocusAdapter() {
@@ -37,13 +44,38 @@ public class FocusRecordReviewFrame extends javax.swing.JFrame {
             }
         } );
         if( sharedTravelRecord_ != null ) {
-            ComboBoxModel cModel = new DefaultComboBoxModel(sharedTravelRecord_.keySet().toArray());
-            jComboBox1.setModel(cModel);
+            comboBox_ = new DefaultComboBoxModel(sharedTravelRecord_.keySet().toArray());
+            jComboBox1.setModel(comboBox_);
             if( !sharedTravelRecord_.keySet().isEmpty() ) {
                 jComboBox1.setSelectedIndex(0);
             }
         }
-       
+        
+        /** First Number Ordering Comparator **/
+        Comparator orderComp = new Comparator() {
+            
+            /**
+             * Takes Strings
+             * 
+             * @param o1
+             * @param o2
+             * @return 
+             */
+            @Override
+            public int compare(Object o1, Object o2) {
+                String s1 = (String) o1;
+                String s2 = (String) o2;
+                
+                int val1 = Integer.parseInt(s1.substring(0, s1.indexOf( " ")));
+                int val2 = Integer.parseInt(s2.substring(0, s2.indexOf(" ") ));
+                
+                return val1 - val2;
+                
+            }
+            
+        };
+        
+        keySet_ = new TreeSet(orderComp);
     }
 
     /**
@@ -115,19 +147,31 @@ public class FocusRecordReviewFrame extends javax.swing.JFrame {
 
     private void formFocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_formFocusGained
             
-        if( sharedTravelRecord_!= null ) {
-            ComboBoxModel cModel = new DefaultComboBoxModel(sharedTravelRecord_.keySet().toArray());
-            jComboBox1.setModel(cModel);
+        if( sharedTravelRecord_!= null && sharedTravelRecord_.keySet() != null ) {
+            //Get Last Item
+            String key = (String) jComboBox1.getSelectedItem(); 
+            
+            //Inefficient but this is for verification purposes so low priority
+
+            keySet_.addAll(sharedTravelRecord_.keySet());
+            comboBox_ = new DefaultComboBoxModel(keySet_.toArray());
+            jComboBox1.setModel(comboBox_);
+            
+            if( key != null ) {
+                comboBox_.setSelectedItem( key );
+            }
+            
         } else {
             jComboBox1.setModel(new DefaultComboBoxModel(new Object[]{""} ) );
+            comboBox_ = null;
         }
     }//GEN-LAST:event_formFocusGained
 
     private void jComboBox1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jComboBox1ActionPerformed
         JComboBox<Integer> cb = (JComboBox)evt.getSource();
-        Integer idx;
+        String idx;
         try{
-            idx = (Integer)cb.getSelectedItem();
+            idx = (String)cb.getSelectedItem();
         } catch ( ClassCastException ex ) {
             //The Model was set back to a default
             //Just return
@@ -186,10 +230,10 @@ public class FocusRecordReviewFrame extends javax.swing.JFrame {
         }
         //</editor-fold>
 
-        final Map<Integer, FiducialAutoFocus.ZTravelRecord> map = new HashMap<Integer, FiducialAutoFocus.ZTravelRecord>();
+        final Map<String, FiducialAutoFocus.ZTravelRecord> map = new HashMap<String, FiducialAutoFocus.ZTravelRecord>();
         FiducialAutoFocus.ZTravelRecord req = new FiducialAutoFocus.ZTravelRecord(144);
-        req.addStepRecord( new FiducialAutoFocus.ZStepRecord(12, 133, .09, 12, 100, true));
-        map.put(12, req);
+        req.addStepRecord( new FiducialAutoFocus.ZStepRecord(12, 133, .09, 12, 100, true, 1231));
+        map.put(12 + "Extra", req);
         
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
