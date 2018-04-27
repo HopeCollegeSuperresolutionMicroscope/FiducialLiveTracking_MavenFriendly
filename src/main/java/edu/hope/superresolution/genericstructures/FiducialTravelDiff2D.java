@@ -139,6 +139,8 @@ public class FiducialTravelDiff2D {
             xDiffs_ = diffModel.xDiffs_; //This was the model parameter used
             yDiffs_ = diffModel.yDiffs_;
             intRatio_ = diffModel.intRatio_;
+            xUncertainty_ = diffModel.xUncertainty_;
+            yUncertainty_ = diffModel.yUncertainty_;
             avgUncertaintyRatio_ = diffModel.avgUncertaintyRatio_;
             
             //Construct A Virtual Spot by Updating It to Match the diffModel
@@ -182,11 +184,11 @@ public class FiducialTravelDiff2D {
         //Currently, exposing all computation methods as static variables to allow for recalculation
         //This will need to be reworked if more data structures are introduced (TEMPORAY SOLUTION)
         public static double computeXTravelDiffUncertainty( SpotData prevSpot, SpotData curSpot ) {
-            return curSpot.getSigma() + prevSpot.getSigma();
+            return Math.sqrt( Math.pow(curSpot.getSigma(), 2) + Math.pow(prevSpot.getSigma(), 2) );
         }
         
         public static double computeYTravelDiffUncertainty( SpotData prevSpot, SpotData curSpot ) {
-            return curSpot.getSigma() + prevSpot.getSigma();
+            return Math.sqrt( Math.pow(curSpot.getSigma(), 2) + Math.pow(prevSpot.getSigma(), 2) );
         }
         
         public static double computeXTravelDiff( SpotData prevSpot, SpotData curSpot ) {
