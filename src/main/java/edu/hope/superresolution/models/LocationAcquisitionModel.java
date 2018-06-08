@@ -43,6 +43,133 @@ import org.micromanager.utils.MMException;
 public class LocationAcquisitionModel {
     
     /**
+     * Enumerated Value For Different means of comparing drift.  These are set through 
+     * {@link #setDriftComparisonMode()}. Certain types of drift comparisons are more 
+     * advantageous than others in a given situation.
+     * <p>
+     *Examples:
+     * <p>
+     *      {@link #TrackComparisonModes#TrackFromFirst} means that any drift is calculated between the first FiducialLocationModel
+     *      fiducials and the current track occuring.  This will result in a single source of 
+     *      uncertainty but a need to assume the maximum travel betwen all fiducials.
+     * <p>
+     *     {@link #TrackComparisonModes#TrackFromPrevious} means that any drift is calculated between
+     *     the current fiducialmodel being tracked and the last one registered.  This will affect the absolute
+     *     drift value negatively in terms of uncertainty, as this will compound the uncertainty of the previous
+     *     drift correlation with the newest increment.  However, it only requires a certainty of "Per Frame"
+     *     maximum translation.
+     * <p>
+     *    {@link #TrackComparisonModes#TrackFromCurrent} means that at whatever point this mode was set through 
+     *    {@link #setTrackComparisonMode() }, the most current FiducialLocationModel will be used 
+     *    in the same manner as {@link #TrackFromFirst} for the proceeding tracked FiducialLocationModels.
+     * <p>
+     *   {@link #TrackFromSelected} means that anytime a new fiducialLocationModel is being created from a track,
+     *   the current selected FiducialLocationModel will be used to as the reference for Drift.
+     *
+     */
+    public enum TrackComparisonModes {
+        TrackFromFirst(false),
+        TrackFromCurrent(false),
+        TrackFromSelected(true),
+        TrackFromPrevious(true);
+        
+        boolean requiresRefresh_;
+        
+        TrackComparisonModes( boolean requiresRefresh ) {
+            requiresRefresh_ = requiresRefresh;
+        }
+        
+        public boolean requiresRefresh() {
+            return requiresRefresh_;
+        }
+        
+        /**
+         * Package Private method to get the locationAcquisition's current corresponding fiducial model.
+         * 
+         */
+        FiducialLocationModel grabCorrespondingTrackModel( LocationAcquisitionModel locAcq ) {
+            switch(this) {
+                case TrackFromFirst:
+                    return trackFromFirstModelGrab( locAcq );
+                case TrackFromSelected:
+                    return trackFromSelectedModelGrab(locAcq);
+                case TrackFromCurrent:
+                    return trackFromCurrentModelGrab(locAcq);
+                case TrackFromPrevious:
+                    return trackFromPreviousModelGrab(locAcq);
+                default:
+                    break;
+            }
+            
+            return null;
+        }
+        
+        /**
+         * Private method implementing the Model Grab for the implemented trackFromFirst
+         * @param locAcq The locationAcquisition with this track mode
+         * @return The first Fiducial Location Model in the acquisition
+         */
+        private FiducialLocationModel trackFromFirstModelGrab( LocationAcquisitionModel locAcq ) {
+           return locAcq.fLocationAcquisitions_.get(0);
+        }
+        
+        /**
+         * Private method implementing the Model Grab for the implemented trackFromSelected
+         * @param locAcq The locationAcquisition with this track mode
+         * @return The current selected model in the acquisition or the most recent if somehow null
+         */
+        private FiducialLocationModel trackFromSelectedModelGrab( LocationAcquisitionModel locAcq ) {
+           if( locAcq.selectedLocationsAcquisition_ != null ) {
+                        return locAcq.selectedLocationsAcquisition_;
+                    } else {
+                        //Most recent one
+                        return trackFromSelectedModelGrab(locAcq);
+                    } 
+        }
+        
+         /**
+         * Private method implementing the Model Grab for the implemented trackFromPrevious
+         * @param locAcq The locationAcquisition with this track mode
+         * @return The current model that was last appended to this fiduciallocationmodel
+         */
+        private FiducialLocationModel trackFromPreviousModelGrab( LocationAcquisitionModel locAcq ) {
+            return locAcq.fLocationAcquisitions_.get( locAcq.fLocationAcquisitions_.size() - 1); 
+        }
+        
+        /**
+         * Private method implementing the Model Grab for the implemented trackFromCurrent
+         * @param locAcq The locationAcquisition with this track mode
+         * @return The current model that would be used for this mode at that junction (same as {@link #trackFromPreviousModelGrab(edu.hope.superresolution.models.LocationAcquisitionModel) }
+         */
+        private FiducialLocationModel trackFromCurrentModelGrab( LocationAcquisitionModel locAcq ) {
+            return locAcq.fLocationAcquisitions_.get( locAcq.fLocationAcquisitions_.size() - 1); 
+        }
+        
+        /**
+         * Package Private method to apply changes based off of TrackComparisonModes
+         * <p>
+         * New modes that occur should add to this implementation
+         * 
+         * @param The locationAcquisition model this is being applied to.  
+         */
+        void applyRefreshMode( LocationAcquisitionModel locAcq ) {
+            switch( this ) {
+                case TrackFromSelected:
+                    if( locAcq.selectedLocationsAcquisition_ != null ) {
+                        locAcq.trackModel_ = locAcq.selectedLocationsAcquisition_;
+                    } else {
+                        //Most recent one
+                        locAcq.trackModel_ = locAcq.fLocationAcquisitions_.get( locAcq.fLocationAcquisitions_.size() - 1);
+                    }
+                    break;
+                case TrackFromPrevious:
+                    locAcq.trackModel_ = locAcq.fLocationAcquisitions_.get( locAcq.fLocationAcquisitions_.size() - 1); 
+                    break;
+            }
+        }
+    }
+    
+    /**
      * Local Implementation of a ModelUpdateListener for use with the GaussianParamModel
      * This Allows for Changes to the GaussianParamModel to be updated into the 
      * inner acquisition stack_
@@ -124,6 +251,11 @@ public class LocationAcquisitionModel {
     public static final String ACQUISITIONTITLEBASE = "FiducialLocationAcquisition";
     private static int acquisitionTitleIdx_ = 0; //Used for cataloging of indices
     private final String uniqueAcquisitionTitle_; //Used for uniqueAcquisitionTitle
+    
+    //Storage for Track model in the event of certain modes that don't require requerying
+    private FiducialLocationModel trackModel_; 
+    //Default the comparison mode to something that will refresh the trackModel before use
+    private TrackComparisonModes trackCompMode_ = TrackComparisonModes.TrackFromPrevious;
 
     
     /**
@@ -365,10 +497,15 @@ public class LocationAcquisitionModel {
                                                     uniqueAcquisitionTitle_ );
         }       
         else {
+            
+            //We Will apply the TrackComparisonMode to this instance, in case the mode needs refreshment
+            //This is slightly obscure, but it will manipulate trackModel_
+            refreshTrackModeIfNecessary();
+             
             //Copy From Last FiducialLocationModel
             try {
                 locModel = FiducialLocationModel.createTrackedFiducialLocationModel(iProc, 
-                        fLocationAcquisitions_.get( fLocationAcquisitions_.size() - 1 ), uniqueAcquisitionTitle_, numTracked_);
+                        trackModel_, uniqueAcquisitionTitle_, numTracked_);
                         /*new FiducialLocationModel( iProc, 
                     fLocationAcquisitions_.get( fLocationAcquisitions_.size() - 1 ),
                                                         uniqueAcquisitionTitle_ );*/
@@ -390,6 +527,24 @@ public class LocationAcquisitionModel {
         }
         
         return locModel;
+    }
+    
+    
+    /**
+     * Gets the FiducialLocationModel that would be tracked for a given {@link TrackComparisonMode}
+     * <p>
+     * Note: This will not set the LocationAcquisitionMode
+     * @param tMode
+     * @return 
+     */
+    public FiducialLocationModel getTrackFiducialModel( TrackComparisonModes tMode ) {
+        
+        FiducialLocationModel trackModel = tMode.grabCorrespondingTrackModel(this);
+        if( trackModel == null  ) {
+                throw new IllegalArgumentException("Unimplemented tMode in function getTrackFiducialModel" + tMode.toString() ); 
+        }
+        
+        return trackModel;
     }
     
     
@@ -591,6 +746,57 @@ public class LocationAcquisitionModel {
      */
     public String getAcquisitionTitle() {
         return uniqueAcquisitionTitle_;
+    }    
+    
+    
+    /**
+     * Sets what tracked FiducialLocationModels will be created against.
+     * <p>
+     * See {@link TrackComparisonModes} for more details on enumerations that are not listed below
+     * <p>
+     *      *Examples:
+     * <p>
+     *      {@link #TrackComparisonModes#TrackFromFirst} means that any drift is calculated between the first FiducialLocationModel
+     *      fiducials and the current track occuring.  This will result in a single source of 
+     *      uncertainty but a need to assume the maximum travel betwen all fiducials.
+     * <p>
+     *     {@link #TrackComparisonModes#TrackFromPrevious} means that any drift is calculated between
+     *     the current fiducialmodel being tracked and the last one registered.  This will affect the absolute
+     *     drift value negatively in terms of uncertainty, as this will compound the uncertainty of the previous
+     *     drift correlation with the newest increment.  However, it only requires a certainty of "Per Frame"
+     *     maximum translation.
+     * <p>
+     *    {@link #TrackComparisonModes#TrackFromCurrent} means that at whatever point this mode was set through 
+     *    {@link #setTrackComparisonMode() }, the most current FiducialLocationModel will be used 
+     *    in the same manner as {@link #TrackFromFirst} for the proceeding tracked FiducialLocationModels.
+     * <p>
+     *   {@link #TrackFromSelected} means that anytime a new fiducialLocationModel is being created from a track,
+     *   the current selected FiducialLocationModel will be used to as the reference for Drift.
+     * 
+     * @param mode The current mode for which all future fiducialLocationModels will be tracked {@link #pushNextFiducialLocationModel(ij.process.ImageProcessor, boolean) }
+     */
+    public void setTrackComparisonMode( TrackComparisonModes mode ) {
+        
+        //For modes that do not require refresh, this stored value will be used
+        trackModel_ = getTrackFiducialModel(mode);
+        
+        //Store the mode for reference with modes that require refresh
+        trackCompMode_ = mode;
+    }
+    
+    /**
+     * Applies the current TrackComparisonMode to this instance if it is a mode that requires
+     * a refreshing and will update the saved track object.
+     * <p>
+     * For instance, tracking from the first, will not require refreshing as the LocationAcquisition
+     * must exist with a single first model.  Addiitionally, tracking from current, means that the 
+     * current locationAcquisition was stored as reference for all future tracks.
+     * <p>
+     * Track from Previous, will require renewing everytime that the selected FiducialLocationModel changes.
+     * 
+     */
+    private void refreshTrackModeIfNecessary() {
+        trackCompMode_.applyRefreshMode(this);
     }
     
     /**
