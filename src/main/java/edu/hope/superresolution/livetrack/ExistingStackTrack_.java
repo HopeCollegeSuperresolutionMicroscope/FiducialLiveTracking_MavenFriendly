@@ -16,8 +16,6 @@ import edu.hope.superresolution.genericstructures.iDriftModel;
 import edu.hope.superresolution.models.FiducialLocationModel;
 import edu.hope.superresolution.models.LinearDriftModel2D;
 import edu.hope.superresolution.models.LocationAcquisitionModel;
-import edu.hope.superresolution.models.TestingProject;
-import edu.hope.superresolution.models.TestingProject.TestBean;
 import ij.ImagePlus;
 import ij.gui.ImageWindow;
 import ij.io.FileInfo;
