@@ -11,6 +11,7 @@ import edu.hope.superresolution.Utils.AdditionalGaussianUtils;
 import edu.hope.superresolution.Utils.IJMMReportingUtils;
 import edu.hope.superresolution.exceptions.NoTrackException;
 import edu.hope.superresolution.genericstructures.NumberAndUncertaintyReporter;
+import edu.hope.superresolution.genericstructures.SpuriousWakeGuard;
 import edu.hope.superresolution.genericstructures.iDriftModel;
 import edu.hope.superresolution.livetrack.LiveTracking;
 import edu.hope.superresolution.models.FiducialArea;
@@ -220,34 +221,6 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         avgRelativeZ, minRelativeZWithUncertainty
     }
     
-    public class SpuriousWakeGuardObject {
-        
-        private boolean waitGuard_ = false;
-        private final Object syncObj_ = new Object();
-        
-        public void doWait() {
-            synchronized (syncObj_) {
-                waitGuard_ = true;
-                while (waitGuard_) {
-                    try {
-                        super.wait(1000);
-                    } catch (InterruptedException ex) {
-                        Logger.getLogger(FiducialAutoFocus.class.getName()).log(Level.SEVERE, null, ex);
-                        Thread.interrupted();
-                    }
-                }
-            }
-        }
-        
-
-        public void doNotify() {
-            synchronized (syncObj_) {
-                waitGuard_ = false;
-                super.notify();
-            }
-        }
-        
-    }
     
     /**
      * Abstract Implementation for Selector Actions that need to stall this focus Thread.
@@ -255,7 +228,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
      */
     abstract public class FocusThreadLockSelector implements TwoSliceSelector {
         
-        private final SpuriousWakeGuardObject waitObject_;
+        private final SpuriousWakeGuard waitObject_;
         
         /**
          * General Constructor - assumes waitObject is a only waiting on a single thread
@@ -265,7 +238,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
          * 
          * @param waitObject 
          */
-        public FocusThreadLockSelector( SpuriousWakeGuardObject waitObject ) {
+        public FocusThreadLockSelector( SpuriousWakeGuard waitObject ) {
             waitObject_ = waitObject;
         }
         
@@ -286,7 +259,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
 
         private LocationAcquisitionModel locAcq_;
         
-        InOutFocusFiducialLocationSelector( LocationAcquisitionModel locAcq, SpuriousWakeGuardObject waitObject ) {
+        InOutFocusFiducialLocationSelector( LocationAcquisitionModel locAcq, SpuriousWakeGuard waitObject ) {
             super( waitObject );
             locAcq_ = locAcq;
         }
@@ -322,7 +295,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
 
         private LocationAcquisitionModel locAcq_;
         
-        SlopInAndOutSelector( SpuriousWakeGuardObject waitObject ) {
+        SlopInAndOutSelector( SpuriousWakeGuard waitObject ) {
             super( waitObject );
         }
         
@@ -818,7 +791,7 @@ public class FiducialAutoFocus extends AutofocusBase /*implements Autofocus*/  {
         } 
         ReportingUtils.showMessage("Out of ReaDjust");
         //Prompt User for their selection
-        SpuriousWakeGuardObject waitObject = new SpuriousWakeGuardObject();
+        SpuriousWakeGuard waitObject = new SpuriousWakeGuard();
         LocationAcquisitionModel promptCopy = locAcqModel.getCurrentLocationAcquisitionCopy();
         //The Implementation Details of the LocationAcquisitionDisplayWindow that we are building
         FiducialModelFocusEdgesSelection actionDock = new FiducialModelFocusEdgesSelection( new SlopInAndOutSelector( waitObject ) );

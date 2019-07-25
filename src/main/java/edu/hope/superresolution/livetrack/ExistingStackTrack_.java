@@ -5,20 +5,35 @@
  */
 package edu.hope.superresolution.livetrack;
 
-import com.opencsv.CSVWriter;
+import com.opencsv.bean.StatefulBeanToCsv;
+import com.opencsv.bean.StatefulBeanToCsvBuilder;
+import com.opencsv.exceptions.CsvDataTypeMismatchException;
+import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 import edu.hope.superresolution.Utils.IJMMReportingUtils;
 import edu.hope.superresolution.exceptions.NoTrackException;
+import edu.hope.superresolution.genericstructures.AbstractDriftModel;
+import edu.hope.superresolution.genericstructures.iDriftModel;
 import edu.hope.superresolution.models.FiducialLocationModel;
+import edu.hope.superresolution.models.LinearDriftModel2D;
 import edu.hope.superresolution.models.LocationAcquisitionModel;
+import edu.hope.superresolution.models.TestingProject;
+import edu.hope.superresolution.models.TestingProject.TestBean;
 import ij.ImagePlus;
 import ij.gui.ImageWindow;
 import ij.io.FileInfo;
 import ij.plugin.filter.PlugInFilter;
 import ij.process.ImageProcessor;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.JFileChooser;
+import javax.swing.filechooser.FileFilter;
 
 
 /**
@@ -31,6 +46,37 @@ public class ExistingStackTrack_ implements PlugInFilter {
     private LocationAcquisitionModel locAcq_;
     
     private final Map<Integer, Double> driftMap_ = new HashMap<Integer, Double>();
+    
+    /**
+     * Only permits *.csv files
+     */
+    public static class CSVFilter extends FileFilter {
+
+        public CSVFilter () {
+            
+        }
+        
+        @Override
+        public boolean accept(File pathname) {
+            
+            if( pathname.isDirectory() ) {
+                return true;
+            }
+            
+            String name = pathname.getName();
+            if( name == null ) {
+                return false;
+            }
+            
+            return name.endsWith(".csv");
+        }
+
+        @Override
+        public String getDescription() {
+            return "Only CSV Files";
+        }
+    
+    }
     
     @Override
     public int setup(String arg, ImagePlus imp) {
@@ -60,22 +106,79 @@ public class ExistingStackTrack_ implements PlugInFilter {
                 //For the sake of simplicity, we assume we track all slices
                 //Workaround to determine stackDepth
                 int stackSize = imp_.getImageStackSize();
+                //Generate CSV Writer
+                String fullPath = generateFullPathForDrift(imp_);
+                
                 //TODO:  Finalize
-                //List<fModel> trackList = new LinkedList<Integer>();
+                List<AbstractDriftModel> trackList = new LinkedList<AbstractDriftModel>();
+                
+                //Set the locationAcquisition track mode
+                locAcq_.setTrackComparisonMode(LocationAcquisitionModel.TrackComparisonModes.TrackFromFirst);
                 for( int i = 1; i <= stackSize; i++ ) {
                     imp_.setSlice(i);
                     try {
                         //This will currently only register tracked fiducials
                         FiducialLocationModel fModel = locAcq_.pushNextFiducialLocationModel(imp_.getProcessor(), true);
-                        //driftMap_.put(i, fModel.getAvgAbsoluteXPixelTranslation()); //This needs to be abstracted
+                        trackList.add( fModel.getDriftAbsoluteFromFirstModel() );
                     } catch(NoTrackException ex) {
                         IJMMReportingUtils.showError("Could Not Find Track a Fiducial!");
                         
                     }
                     
                 }
+
+
                 
-                //This is a post-process operation, since we really want to verify any changes in the future
+                
+                //Spawn a file Chooser to save it
+                File saveFile;
+                JFileChooser fc = new JFileChooser(imp_.getOriginalFileInfo().directory);
+                fc.setAcceptAllFileFilterUsed(false);
+                fc.addChoosableFileFilter(new CSVFilter() );
+                int result = fc.showSaveDialog(fc);
+                if ( result == JFileChooser.CANCEL_OPTION || result == JFileChooser.ERROR_OPTION ) {
+                   //Prompt for Thread
+                   return;
+                } else {
+                   saveFile = fc.getSelectedFile();
+                }
+                
+               if( saveFile == null || saveFile.getName() == null ) 
+                {
+                    return;
+                }
+                
+               //Just add .csv if its missing
+               if( !saveFile.getName().endsWith(".csv") ) {
+                   saveFile = new File( saveFile.getAbsolutePath() + ".csv" );
+                           
+               }
+               
+                FileWriter writer;
+                try {
+                    writer = new FileWriter(saveFile);
+                    //WRITE ALL DATA TO CSV  
+                } catch (IOException ex) {
+                    //Should Prompt for new save as well (TODO)
+                    IJMMReportingUtils.showError(ex);
+                    return;
+                }
+                
+                StatefulBeanToCsv<AbstractDriftModel> csvwriter = new StatefulBeanToCsvBuilder<AbstractDriftModel>(writer).build();
+                
+                //TestBean test = new TestBean();
+                try {
+                    //This is a post-process operation, since we really want to verify any changes in the future
+                    csvwriter.write(trackList);
+                    writer.close();
+                } catch (CsvDataTypeMismatchException ex) {
+                    Logger.getLogger(ExistingStackTrack_.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (CsvRequiredFieldEmptyException ex) {
+                    Logger.getLogger(ExistingStackTrack_.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (IOException ex) {
+                    Logger.getLogger(ExistingStackTrack_.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                
                 
                 
                 
@@ -97,20 +200,16 @@ public class ExistingStackTrack_ implements PlugInFilter {
         //This may be statically interrupted if we'd like to do it?
     }
 
+    private String generateFullPathForDrift( ImagePlus ip ) {
+        FileInfo fi = ip.getOriginalFileInfo();
+        return fi.directory + "\\" + fi.fileName + "_AbsoluteDriftInfo.csv";
+    }
+    
     //To Be relocated to a file
     private void storeAbsoluteDriftFile( ) {
         ImagePlus ip = new ImagePlus();
-        FileInfo fi = ip.getOriginalFileInfo();
-        String fullPath = fi.directory + "\\" + fi.fileName;
-        try {
-        CSVWriter writer = new CSVWriter( new FileWriter( fullPath ) );
-            //WRITE ALL DATA TO CSV
-            
-        } catch (IOException ex )     
-        {
-            //Should Prompt for new save as well (TODO)
-            IJMMReportingUtils.showError(ex);
-        }
+
+
     }
     
 }
