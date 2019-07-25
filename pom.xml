@@ -604,9 +604,9 @@
         <!-- Jitpack reference to github Libraries-->
         <!-- BeanInfo Library for CSV ease of writing -->
         <dependency>
-	    <groupId>com.github.hanseltime</groupId>
-	    <artifactId>LooseBeans</artifactId>
-	    <version>v0.2.1</version>
-	</dependency>
+            <groupId>com.github.hanseltime</groupId>
+            <artifactId>LooseBeans</artifactId>
+            <version>v0.2.3</version>
+        </dependency>
     </dependencies>
 </project>
